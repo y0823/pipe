@@ -62,6 +62,7 @@ export default function App() {
   const [dataSource, setDataSource] = useState('mock_data')
   const [showConfirm, setShowConfirm] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [matchingQueried, setMatchingQueried] = useState(false)
 
   // 拖拽调整列宽状态与函数
   const [csvColWidths, setCsvColWidths] = useState([200, 700, 150])
@@ -242,6 +243,7 @@ export default function App() {
             setFile(null)
             setCsvPreview([])
             fetchDbData()
+            setMatchingQueried(true)
             // 顺便让单项查询也刷新选项数据
             fetchQueryProducts()
           } else {
@@ -549,136 +551,138 @@ export default function App() {
           )}
         </section>
 
-        {/* 数据库当前内容预览 */}
-        <section className="panel" style={{ marginTop: '2.5rem' }}>
-          <div className="section-title">
-            <div className="section-title-left">
-              <span>📊 数据库当前数据列表</span>
+        {/* 查询结果预览 */}
+        {matchingQueried && (
+          <section className="panel" style={{ marginTop: '2.5rem' }}>
+            <div className="section-title">
+              <div className="section-title-left">
+                <span>📊 查询结果</span>
+                {dbData.length > 0 && (
+                  <span className="badge-count">{dbData.length} 条记录</span>
+                )}
+              </div>
               {dbData.length > 0 && (
-                <span className="badge-count">{dbData.length} 条记录</span>
+                <div className="table-header-controls">
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ 
+                      padding: '0.45rem 1.1rem', 
+                      fontSize: '0.82rem', 
+                      background: copied ? 'var(--accent-success)' : 'var(--accent-primary)',
+                      boxShadow: copied ? '0 4px 12px hsla(145, 80%, 45%, 0.2)' : '0 4px 14px 0 hsla(260, 85%, 65%, 0.3)'
+                    }} 
+                    onClick={handleCopyPrices}
+                  >
+                    {copied ? '✅ 已复制价格' : '📋 复制价格'}
+                  </button>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ 
+                      padding: '0.45rem 1.1rem', 
+                      fontSize: '0.82rem', 
+                      background: 'var(--accent-success)', 
+                      boxShadow: '0 4px 12px hsla(145, 80%, 45%, 0.2)' 
+                    }} 
+                    onClick={handleExportExcel}
+                  >
+                    📥 导出为Excel
+                  </button>
+                </div>
               )}
             </div>
-            {dbData.length > 0 && (
-              <div className="table-header-controls">
-                <button 
-                  className="btn btn-primary" 
-                  style={{ 
-                    padding: '0.45rem 1.1rem', 
-                    fontSize: '0.82rem', 
-                    background: copied ? 'var(--accent-success)' : 'var(--accent-primary)',
-                    boxShadow: copied ? '0 4px 12px hsla(145, 80%, 45%, 0.2)' : '0 4px 14px 0 hsla(260, 85%, 65%, 0.3)'
-                  }} 
-                  onClick={handleCopyPrices}
-                >
-                  {copied ? '✅ 已复制价格' : '📋 复制价格'}
-                </button>
-                <button 
-                  className="btn btn-primary" 
-                  style={{ 
-                    padding: '0.45rem 1.1rem', 
-                    fontSize: '0.82rem', 
-                    background: 'var(--accent-success)', 
-                    boxShadow: '0 4px 12px hsla(145, 80%, 45%, 0.2)' 
-                  }} 
-                  onClick={handleExportExcel}
-                >
-                  📥 导出为Excel
-                </button>
+
+            {loadingDb ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
+                <div className="loading-spinner" style={{ marginBottom: '0.5rem' }}></div>
+                <p>正在读取数据库记录...</p>
+              </div>
+            ) : dbData.length > 0 ? (
+              <div className="table-container" style={{ margin: '0' }}>
+                <table className="data-table" style={{ tableLayout: 'fixed', width: `${dbColWidths.reduce((a, b) => a + b, 0)}px` }}>
+                  <thead>
+                    <tr>
+                      {Object.keys(dbData[0] || {}).map((colName, idx) => {
+                        const isRightAlign = colName === '数量' || colName.includes('系数') || colName === '镀锌' || colName === '低温' || colName === '脱脂' || colName === '抛光';
+                        return (
+                          <th 
+                            key={colName} 
+                            style={{ 
+                              width: `${dbColWidths[idx] || 120}px`, 
+                              position: 'relative',
+                              textAlign: isRightAlign ? 'right' : 'left'
+                            }}
+                          >
+                            <div style={{ 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              whiteSpace: 'nowrap', 
+                              paddingRight: '12px',
+                              float: isRightAlign ? 'right' : 'none'
+                            }}>
+                              {colName}
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResize(e, idx, 'db')} />
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDbData.length > 0 ? (
+                      filteredDbData.map((item, index) => {
+                        const cols = Object.keys(dbData[0] || {});
+                        return (
+                          <tr key={index}>
+                            {cols.map((colName, colIdx) => {
+                              const val = item[colName];
+                              const w = dbColWidths[colIdx] || 120;
+                              const isRightAlign = colName === '数量' || colName.includes('系数') || colName === '镀锌' || colName === '低温' || colName === '脱脂' || colName === '抛光';
+                              return (
+                                <td 
+                                  key={colName}
+                                  style={{ 
+                                    width: `${w}px`, 
+                                    maxWidth: `${w}px`,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    textAlign: isRightAlign ? 'right' : 'left'
+                                  }}
+                                  title={val !== null && val !== undefined ? String(val) : ''}
+                                >
+                                  {colName === '物料号码' ? (
+                                    <span className="badge-code">{val}</span>
+                                  ) : isRightAlign ? (
+                                    <div className="badge-qty-wrapper">
+                                      <span className="badge-qty">{val !== null && val !== undefined ? String(val) : '—'}</span>
+                                    </div>
+                                  ) : (
+                                    val !== null && val !== undefined ? String(val) : '—'
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={Object.keys(dbData[0] || {}).length || 3} style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+                          📭 暂无数据
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-icon">📭</div>
+                <p>目前数据库中无数据，请在上方上传 CSV 文件导入。</p>
               </div>
             )}
-          </div>
-
-          {loadingDb ? (
-            <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>
-              <div className="loading-spinner" style={{ marginBottom: '0.5rem' }}></div>
-              <p>正在读取数据库记录...</p>
-            </div>
-          ) : dbData.length > 0 ? (
-            <div className="table-container" style={{ margin: '0' }}>
-              <table className="data-table" style={{ tableLayout: 'fixed', width: `${dbColWidths.reduce((a, b) => a + b, 0)}px` }}>
-                <thead>
-                  <tr>
-                    {Object.keys(dbData[0] || {}).map((colName, idx) => {
-                      const isRightAlign = colName === '数量' || colName.includes('系数') || colName === '镀锌' || colName === '低温' || colName === '脱脂' || colName === '抛光';
-                      return (
-                        <th 
-                          key={colName} 
-                          style={{ 
-                            width: `${dbColWidths[idx] || 120}px`, 
-                            position: 'relative',
-                            textAlign: isRightAlign ? 'right' : 'left'
-                          }}
-                        >
-                          <div style={{ 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap', 
-                            paddingRight: '12px',
-                            float: isRightAlign ? 'right' : 'none'
-                          }}>
-                            {colName}
-                          </div>
-                          <div className="col-resizer" onMouseDown={(e) => startResize(e, idx, 'db')} />
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDbData.length > 0 ? (
-                    filteredDbData.map((item, index) => {
-                      const cols = Object.keys(dbData[0] || {});
-                      return (
-                        <tr key={index}>
-                          {cols.map((colName, colIdx) => {
-                            const val = item[colName];
-                            const w = dbColWidths[colIdx] || 120;
-                            const isRightAlign = colName === '数量' || colName.includes('系数') || colName === '镀锌' || colName === '低温' || colName === '脱脂' || colName === '抛光';
-                            return (
-                              <td 
-                                key={colName}
-                                style={{ 
-                                  width: `${w}px`, 
-                                  maxWidth: `${w}px`,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  textAlign: isRightAlign ? 'right' : 'left'
-                                }}
-                                title={val !== null && val !== undefined ? String(val) : ''}
-                              >
-                                {colName === '物料号码' ? (
-                                  <span className="badge-code">{val}</span>
-                                ) : isRightAlign ? (
-                                  <div className="badge-qty-wrapper">
-                                    <span className="badge-qty">{val !== null && val !== undefined ? String(val) : '—'}</span>
-                                  </div>
-                                ) : (
-                                  val !== null && val !== undefined ? String(val) : '—'
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={Object.keys(dbData[0] || {}).length || 3} style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-                        📭 暂无数据
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">📭</div>
-              <p>目前数据库中无数据，请在上方上传 CSV 文件导入。</p>
-            </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     )
   }
@@ -831,95 +835,106 @@ export default function App() {
         </section>
 
         {/* 结果栏及清除按钮 */}
-        <div className="results-header">
-          <div className="results-count">
-            找到 <strong>{products.length}</strong> 行报价记录
-          </div>
-          {(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice) && (
-            <button className="clear-btn" onClick={clearFilters}>
-              清除全部筛选条件
-            </button>
-          )}
-        </div>
+        {(() => {
+          const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice);
+          return hasActiveQuery ? (
+            <>
+              <div className="results-header">
+                <div className="results-count">
+                  找到 <strong>{products.length}</strong> 行报价记录
+                </div>
+                <button className="clear-btn" onClick={clearFilters}>
+                  清除全部筛选条件
+                </button>
+              </div>
 
-        {/* 服务端错误提示 */}
-        {queryError && (
-          <div style={{
-            background: 'hsla(350, 80%, 55%, 0.1)',
-            border: '1px solid hsla(350, 80%, 55%, 0.3)',
-            color: 'hsl(350, 80%, 65%)',
-            padding: '1rem',
-            borderRadius: '8px',
-            marginBottom: '2rem',
-            textAlign: 'center'
-          }}>
-            ❌ {queryError}
-          </div>
-        )}
+              {/* 服务端错误提示 */}
+              {queryError && (
+                <div style={{
+                  background: 'hsla(350, 80%, 55%, 0.1)',
+                  border: '1px solid hsla(350, 80%, 55%, 0.3)',
+                  color: 'hsl(350, 80%, 65%)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  marginBottom: '2rem',
+                  textAlign: 'center'
+                }}>
+                  ❌ {queryError}
+                </div>
+              )}
 
-        {/* 级联查询报价表 */}
-        {queryLoading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>正在联接数据库并为您匹配价格，请稍候...</p>
-          </div>
-        ) : products.length > 0 ? (
-          <div className="table-container" style={{ margin: '0' }}>
-            <table className="results-table">
-              <thead>
-                <tr>
-                  <th>序号</th>
-                  <th>名称</th>
-                  <th>DN1</th>
-                  <th>DN2</th>
-                  <th>壁厚</th>
-                  <th>其他壁厚</th>
-                  <th>材质</th>
-                  <th>厂商</th>
-                  <th style={{ textAlign: 'right' }}>单价</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((item, index) => {
-                  const hasStandard = item.壁厚 !== null && item.壁厚 !== undefined && item.壁厚 !== '';
-                  const hasOther = item.其他壁厚 !== null && item.其他壁厚 !== undefined && item.其他壁厚 !== '' && item.其他壁厚 !== '空';
-                  
-                  return (
-                    <tr key={`${item.序号}-${item.厂商}-${index}`}>
-                      <td>
-                        <span className="badge-primary">{item.序号}</span>
-                      </td>
-                      <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                        {item.名称}
-                      </td>
-                      <td>{item.DN1 !== null && item.DN1 !== undefined && item.DN1 !== '空' ? item.DN1 : '-'}</td>
-                      <td>{item.DN2 !== null && item.DN2 !== undefined && item.DN2 !== '空' ? item.DN2 : '-'}</td>
-                      <td>
-                        {hasStandard ? <span className="badge-success">{item.壁厚}</span> : '-'}
-                      </td>
-                      <td>
-                        {hasOther ? <span className="badge-warn">{item.其他壁厚}</span> : '-'}
-                      </td>
-                      <td>
-                        <span className="badge-secondary">{item.材质}</span>
-                      </td>
-                      <td style={{ fontWeight: '500' }}>{item.厂商}</td>
-                      <td style={{ textAlign: 'right' }} className="price-text">
-                        ¥{parseFloat(item.单价).toFixed(2)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div style={{ fontSize: '3rem' }}>🔩</div>
-            <h3>没有找到匹配的管道报价记录</h3>
-            <p style={{ color: 'var(--text-muted)' }}>尝试放宽筛选条件，或在上方重新选择。</p>
-          </div>
-        )}
+              {/* 级联查询报价表 */}
+              {queryLoading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>正在联接数据库并为您匹配价格，请稍候...</p>
+                </div>
+              ) : products.length > 0 ? (
+                <div className="table-container" style={{ margin: '0' }}>
+                  <table className="results-table">
+                    <thead>
+                      <tr>
+                        <th>序号</th>
+                        <th>名称</th>
+                        <th>DN1</th>
+                        <th>DN2</th>
+                        <th>壁厚</th>
+                        <th>其他壁厚</th>
+                        <th>材质</th>
+                        <th>厂商</th>
+                        <th style={{ textAlign: 'right' }}>单价</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map((item, index) => {
+                        const hasStandard = item.壁厚 !== null && item.壁厚 !== undefined && item.壁厚 !== '';
+                        const hasOther = item.其他壁厚 !== null && item.其他壁厚 !== undefined && item.其他壁厚 !== '' && item.其他壁厚 !== '空';
+                        
+                        return (
+                          <tr key={`${item.序号}-${item.厂商}-${index}`}>
+                            <td>
+                              <span className="badge-primary">{item.序号}</span>
+                            </td>
+                            <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                              {item.名称}
+                            </td>
+                            <td>{item.DN1 !== null && item.DN1 !== undefined && item.DN1 !== '空' ? item.DN1 : '-'}</td>
+                            <td>{item.DN2 !== null && item.DN2 !== undefined && item.DN2 !== '空' ? item.DN2 : '-'}</td>
+                            <td>
+                              {hasStandard ? <span className="badge-success">{item.壁厚}</span> : '-'}
+                            </td>
+                            <td>
+                              {hasOther ? <span className="badge-warn">{item.其他壁厚}</span> : '-'}
+                            </td>
+                            <td>
+                              <span className="badge-secondary">{item.材质}</span>
+                            </td>
+                            <td style={{ fontWeight: '500' }}>{item.厂商}</td>
+                            <td style={{ textAlign: 'right' }} className="price-text">
+                              ¥{parseFloat(item.单价).toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div style={{ fontSize: '3rem' }}>🔩</div>
+                  <h3>没有找到匹配的管道报价记录</h3>
+                  <p style={{ color: 'var(--text-muted)' }}>尝试放宽筛选条件，或在上方重新选择。</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'var(--card-bg)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💡</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>暂无查询结果</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>请在上方选择任一筛选条件（如配件名称、直管径、材质或厂商）以启动报价检索。</p>
+            </div>
+          );
+        })()}
       </div>
     )
   }

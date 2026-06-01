@@ -24,7 +24,7 @@
   
   --dropzone-bg: hsla(220, 20%, 8%, 0.3);
   --btn-secondary-hover-bg: hsla(220, 20%, 25%, 0.3);
-  --th-bg: hsla(220, 20%, 8%, 0.8);
+  --th-bg: hsl(220, 25%, 5%);
   
   --alert-warn-bg: hsla(35, 90%, 50%, 0.12);
   --alert-error-bg: hsla(350, 80%, 60%, 0.12);
@@ -55,7 +55,7 @@
   
   --dropzone-bg: hsla(220, 20%, 95%, 0.6);
   --btn-secondary-hover-bg: hsla(220, 20%, 85%, 0.5);
-  --th-bg: hsla(220, 20%, 93%, 0.9);
+  --th-bg: hsl(220, 15%, 83%);
   
   --alert-warn-bg: hsla(35, 90%, 45%, 0.08);
   --alert-error-bg: hsla(350, 80%, 55%, 0.08);
@@ -357,7 +357,7 @@ h1 {
   padding: 1.1rem 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
-  border-bottom: 2px solid var(--card-border);
+  border-bottom: 2px solid var(--accent-primary);
   text-transform: uppercase;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -758,11 +758,11 @@ h1 {
 }
 
 .results-table th {
-  background: hsla(220, 20%, 8%, 0.8);
+  background: var(--th-bg);
   padding: 0.9rem 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  border-bottom: 2px solid var(--card-border);
+  border-bottom: 2px solid var(--accent-primary);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
