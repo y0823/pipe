@@ -559,3 +559,300 @@ h1 {
 .theme-toggle-btn:active {
   transform: translateY(0);
 }
+
+/* Sidebar Dashboard Layout */
+.app-layout {
+  display: flex;
+  gap: 2rem;
+  max-width: 1750px;
+  width: 96%;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+.sidebar {
+  width: 260px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  position: sticky;
+  top: 2.5rem;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.sidebar-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--card-border);
+  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-item {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-item:hover {
+  background: var(--btn-secondary-hover-bg);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  color: white;
+  box-shadow: 0 4px 14px 0 hsla(260, 85%, 65%, 0.25);
+  -webkit-text-fill-color: white; /* 覆盖渐变字体的透底问题 */
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.5rem;
+}
+
+/* Filter Controls Layout for Query Page */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Form inputs nested under query filter panels */
+.filter-group input[type="text"],
+.filter-group select,
+.price-inputs input[type="number"] {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.filter-group input[type="text"]::placeholder,
+.price-inputs input[type="number"]::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-group input[type="text"]:focus,
+.filter-group select:focus,
+.price-inputs input[type="number"]:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px hsla(260, 85%, 65%, 0.2);
+}
+
+.price-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-inputs span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Results header metrics */
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.results-count {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.clear-btn {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: hsla(220, 20%, 25%, 0.3);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+/* Query results table styles */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.results-table th {
+  background: hsla(220, 20%, 8%, 0.8);
+  padding: 0.9rem 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--card-border);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.results-table td {
+  padding: 0.85rem 1.1rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.results-table tr:last-child td {
+  border-bottom: none;
+}
+
+.results-table tr {
+  transition: background-color 0.15s ease;
+}
+
+.results-table tr:hover {
+  background-color: hsla(260, 80%, 65%, 0.06);
+}
+
+/* Badges for query table */
+.badge-secondary {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: hsla(190, 90%, 50%, 0.1);
+  color: var(--accent-secondary);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid hsla(190, 90%, 50%, 0.2);
+  white-space: nowrap;
+}
+
+.badge-success {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: hsla(145, 80%, 45%, 0.1);
+  color: var(--accent-success);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid hsla(145, 80%, 45%, 0.2);
+  white-space: nowrap;
+}
+
+.badge-warn {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: hsla(35, 90%, 50%, 0.1);
+  color: hsl(35, 90%, 55%);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid hsla(35, 90%, 50%, 0.2);
+  white-space: nowrap;
+}
+
+.badge-primary {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: hsla(260, 80%, 65%, 0.1);
+  color: var(--accent-primary);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid hsla(260, 80%, 65%, 0.2);
+  white-space: nowrap;
+}
+
+.price-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-success);
+  white-space: nowrap;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+  text-align: center;
+  gap: 1rem;
+}
+
