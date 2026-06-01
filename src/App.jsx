@@ -424,39 +424,6 @@ export default function App() {
   const renderMatchingView = () => {
     return (
       <div>
-        <header style={{ textAlign: 'left', marginBottom: '2rem' }}>
-          <h1 style={{ textAlign: 'left' }}>📤 对焊管件价格匹配及查询系统</h1>
-          <p className="subtitle" style={{ textAlign: 'left' }}>目前仅限镇海基地框架不锈钢有缝管件部分</p>
-          
-          <div style={{ marginTop: '1.2rem' }}>
-            {dataSource === 'd1_database' ? (
-              <span style={{
-                background: 'hsla(145, 80%, 45%, 0.15)',
-                color: 'hsl(145, 80%, 45%)',
-                padding: '0.4rem 1rem',
-                borderRadius: '20px',
-                border: '1px solid hsla(145, 80%, 45%, 0.3)',
-                fontSize: '0.85rem',
-                fontWeight: '600'
-              }}>
-                🟢 数据库联接正常 (test_sample)
-              </span>
-            ) : (
-              <span style={{
-                background: 'hsla(35, 90%, 50%, 0.15)',
-                color: 'hsl(35, 90%, 55%)',
-                padding: '0.4rem 1rem',
-                borderRadius: '20px',
-                border: '1px solid hsla(35, 90%, 50%, 0.3)',
-                fontSize: '0.85rem',
-                fontWeight: '600'
-              }}>
-                本地模拟环境（未绑定云端 D1 数据库）
-              </span>
-            )}
-          </div>
-        </header>
-
         {/* 文件上传面板 */}
         <section className="panel">
           {errorMsg && <div className="alert alert-error">❌ {errorMsg}</div>}
@@ -720,39 +687,6 @@ export default function App() {
   const renderQueryView = () => {
     return (
       <div>
-        <header style={{ textAlign: 'left', marginBottom: '2rem' }}>
-          <h1 style={{ textAlign: 'left' }}>🛠️ 管道配件联合核价查询系统</h1>
-          <p className="subtitle" style={{ textAlign: 'left' }}>通过联接 tbl_ss_smls 与 tbl_ss_smls_price，跨表精确筛选各厂商报价</p>
-          
-          <div style={{ marginTop: '1.2rem' }}>
-            {dataSourceQuery === 'd1_database' ? (
-              <span style={{
-                background: 'hsla(145, 80%, 45%, 0.15)',
-                color: 'hsl(145, 80%, 45%)',
-                padding: '0.4rem 1rem',
-                borderRadius: '20px',
-                border: '1px solid hsla(145, 80%, 45%, 0.3)',
-                fontSize: '0.85rem',
-                fontWeight: '600'
-              }}>
-                🟢 已联接 D1 数据库：tbl_ss_smls ➕ tbl_ss_smls_price
-              </span>
-            ) : (
-              <span style={{
-                background: 'hsla(35, 90%, 50%, 0.15)',
-                color: 'hsl(35, 90%, 55%)',
-                padding: '0.4rem 1rem',
-                borderRadius: '20px',
-                border: '1px solid hsla(35, 90%, 50%, 0.3)',
-                fontSize: '0.85rem',
-                fontWeight: '600'
-              }}>
-                🟡 模拟演示数据（请确认本地服务已连接 D1）
-              </span>
-            )}
-          </div>
-        </header>
-
         {/* 联动筛选过滤器 */}
         <section className="panel">
           <div className="filter-grid">
@@ -994,11 +928,6 @@ export default function App() {
   const renderAdminView = () => {
     return (
       <div>
-        <header style={{ textAlign: 'left', marginBottom: '2rem' }}>
-          <h1 style={{ textAlign: 'left' }}>⚙️ 系统后台管理中心</h1>
-          <p className="subtitle" style={{ textAlign: 'left' }}>配置系统系数参数、编辑报价框架字典、以及查询系统日志</p>
-        </header>
-
         <div className="panel" style={{ padding: '5rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ fontSize: '4.5rem', marginBottom: '1.5rem' }}>🔐</div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--text-primary)' }}>后台管理控制台</h2>
@@ -1017,56 +946,112 @@ export default function App() {
   // 4. 左右分栏 Dashboard 骨架渲染
   // ==========================================
   return (
-    <div className="app-layout">
-      {/* 左侧侧边栏导航 */}
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <span style={{ fontSize: '1.4rem' }}>🔩</span>
-          <span>管道配件报价系统</span>
-        </div>
+    <div className="container">
+      {/* 统一页面居中顶部标题栏 */}
+      <header className="page-header">
+        {activeTab === 'matching' && (
+          <>
+            <h1>
+              <span className="header-icon">🏷️</span> 对焊管件价格匹配及查询系统
+            </h1>
+            <p className="subtitle">目前仅限镇海基地框架不锈钢有缝管件部分</p>
+            
+            <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'center' }}>
+              {dataSource === 'd1_database' ? (
+                <span className="db-badge db-badge-success">
+                  🟢 数据库联接正常 (test_sample)
+                </span>
+              ) : (
+                <span className="db-badge db-badge-warning">
+                  本地模拟环境（未绑定云端 D1 数据库）
+                </span>
+              )}
+            </div>
+          </>
+        )}
 
-        <nav className="sidebar-menu">
-          <button 
-            className={`sidebar-item ${activeTab === 'matching' ? 'active' : ''}`}
-            onClick={() => setActiveTab('matching')}
-          >
-            <span style={{ fontSize: '1.1rem' }}>📋</span>
-            <span>价格匹配</span>
-          </button>
-          
-          <button 
-            className={`sidebar-item ${activeTab === 'query' ? 'active' : ''}`}
-            onClick={() => setActiveTab('query')}
-          >
-            <span style={{ fontSize: '1.1rem' }}>🔍</span>
-            <span>单项查询</span>
-          </button>
+        {activeTab === 'query' && (
+          <>
+            <h1>
+              <span className="header-icon">📊</span> 管道配件联合核价查询系统
+            </h1>
+            <p className="subtitle">通过联接 tbl_ss_smls 与 tbl_ss_smls_price，跨表精确筛选各厂商报价</p>
+            
+            <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'center' }}>
+              {dataSourceQuery === 'd1_database' ? (
+                <span className="db-badge db-badge-success">
+                  🟢 已联接 D1 数据库：tbl_ss_smls ➕ tbl_ss_smls_price
+                </span>
+              ) : (
+                <span className="db-badge db-badge-warning">
+                  🟡 模拟演示数据（请确认本地服务已连接 D1）
+                </span>
+              )}
+            </div>
+          </>
+        )}
 
-          <button 
-            className={`sidebar-item ${activeTab === 'admin' ? 'active' : ''}`}
-            onClick={() => setActiveTab('admin')}
-          >
-            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-            <span>后台管理</span>
-          </button>
-        </nav>
+        {activeTab === 'admin' && (
+          <>
+            <h1>
+              <span className="header-icon">⚙️</span> 系统后台管理中心
+            </h1>
+            <p className="subtitle">配置系统系数参数、编辑报价框架字典、以及查询系统日志</p>
+          </>
+        )}
+      </header>
 
-        <div className="sidebar-footer">
-          <button className="theme-toggle-btn" style={{ width: '100%', justifyContent: 'center' }} onClick={toggleTheme} title="切换主题">
-            {theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式'}
-          </button>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-            镇海基地不锈钢有缝管件 v2.0
-          </span>
-        </div>
-      </aside>
+      <div className="app-layout">
+        {/* 左侧侧边栏导航 */}
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <span style={{ fontSize: '1.4rem' }}>🔩</span>
+            <span>管道配件报价系统</span>
+          </div>
 
-      {/* 右侧主视口内容 */}
-      <main className="main-content">
-        {activeTab === 'matching' && renderMatchingView()}
-        {activeTab === 'query' && renderQueryView()}
-        {activeTab === 'admin' && renderAdminView()}
-      </main>
+          <nav className="sidebar-menu">
+            <button 
+              className={`sidebar-item ${activeTab === 'matching' ? 'active' : ''}`}
+              onClick={() => setActiveTab('matching')}
+            >
+              <span style={{ fontSize: '1.1rem' }}>📋</span>
+              <span>价格匹配</span>
+            </button>
+            
+            <button 
+              className={`sidebar-item ${activeTab === 'query' ? 'active' : ''}`}
+              onClick={() => setActiveTab('query')}
+            >
+              <span style={{ fontSize: '1.1rem' }}>🔍</span>
+              <span>单项查询</span>
+            </button>
+
+            <button 
+              className={`sidebar-item ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+              <span>后台管理</span>
+            </button>
+          </nav>
+
+          <div className="sidebar-footer">
+            <button className="theme-toggle-btn" style={{ width: '100%', justifyContent: 'center' }} onClick={toggleTheme} title="切换主题">
+              {theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式'}
+            </button>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
+              镇海基地不锈钢有缝管件 v2.0
+            </span>
+          </div>
+        </aside>
+
+        {/* 右侧主视口内容 */}
+        <main className="main-content">
+          {activeTab === 'matching' && renderMatchingView()}
+          {activeTab === 'query' && renderQueryView()}
+          {activeTab === 'admin' && renderAdminView()}
+        </main>
+      </div>
     </div>
   )
 }
