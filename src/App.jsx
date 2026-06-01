@@ -52,6 +52,7 @@ export default function App() {
   // 1. “价格匹配”模块状态与逻辑 (Price Matching Tab)
   // ==========================================
   const [file, setFile] = useState(null)
+  const [pendingCsvText, setPendingCsvText] = useState('')
   const [csvPreview, setCsvPreview] = useState([])
   const [uploading, setUploading] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
@@ -146,13 +147,15 @@ export default function App() {
     }
   }, [dbData])
 
-  // 解析选择的 CSV 文件预览
+  // 解析选择的 CSV/Excel 文件预览并缓存转换后的 CSV 文本
   const handleFile = (selectedFile) => {
     if (!selectedFile) return
-    if (!selectedFile.name.endsWith('.csv')) {
-      setErrorMsg('文件类型错误：仅支持上传 .csv 格式的文件。')
+    const fileName = selectedFile.name.toLowerCase()
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      setErrorMsg('文件类型错误：仅支持上传 .csv 或 .xlsx/.xls 格式的表格文件。')
       setFile(null)
       setCsvPreview([])
+      setPendingCsvText('')
       return
     }
 
@@ -160,9 +163,9 @@ export default function App() {
     setErrorMsg('')
     setSuccessMsg('')
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target.result
+    // 公用的解析与预览渲染辅助函数
+    const processCsvText = (text) => {
+      setPendingCsvText(text)
       const lines = text.split(/\r?\n/)
       const parsedPreview = []
       for (let i = 0; i < Math.min(lines.length, 6); i++) {
@@ -180,7 +183,33 @@ export default function App() {
         setCsvColWidths(initialWidths)
       }
     }
-    reader.readAsText(selectedFile, 'UTF-8')
+
+    const reader = new FileReader()
+    if (fileName.endsWith('.csv')) {
+      // CSV 文件：直接按 UTF-8 读取文本
+      reader.onload = (e) => {
+        processCsvText(e.target.result)
+      }
+      reader.readAsText(selectedFile, 'UTF-8')
+    } else {
+      // Excel 文件：读取二进制 ArrayBuffer，在前端静默转换为 CSV 文本
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result)
+          const workbook = window.XLSX.read(data, { type: 'array' })
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          const csvText = window.XLSX.utils.sheet_to_csv(worksheet)
+          processCsvText(csvText)
+        } catch (err) {
+          setErrorMsg(`Excel 文件解析失败：${err.message}`)
+          setFile(null)
+          setCsvPreview([])
+          setPendingCsvText('')
+        }
+      }
+      reader.readAsArrayBuffer(selectedFile)
+    }
   }
 
   const handleDrag = (e) => {
@@ -214,56 +243,48 @@ export default function App() {
 
   // 批量上传导入并核价计算
   const startUpload = async () => {
-    if (!file) return
+    if (!file || !pendingCsvText) return
     setUploading(true)
     setErrorMsg('')
     setSuccessMsg('')
     setShowConfirm(false)
 
     try {
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const text = e.target.result
-        try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: text,
-            headers: {
-              'Content-Type': 'text/csv'
-            }
-          })
-
-          const result = await res.json()
-          if (!res.ok) {
-            throw new Error(result.error || '服务器导入发生异常')
-          }
-
-          if (result.success) {
-            setSuccessMsg(result.message || '导入与核价计算成功！')
-            setFile(null)
-            setCsvPreview([])
-            fetchDbData()
-            setMatchingQueried(true)
-            // 顺便让单项查询也刷新选项数据
-            fetchQueryProducts()
-          } else {
-            throw new Error(result.error || '上传导入失败')
-          }
-        } catch (uploadErr) {
-          setErrorMsg(uploadErr.message)
-        } finally {
-          setUploading(false)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: pendingCsvText,
+        headers: {
+          'Content-Type': 'text/csv'
         }
+      })
+
+      const result = await res.json()
+      if (!res.ok) {
+        throw new Error(result.error || '服务器导入发生异常')
       }
-      reader.readAsText(file, 'UTF-8')
-    } catch (err) {
-      setErrorMsg(err.message)
+
+      if (result.success) {
+        setSuccessMsg(result.message || '导入与核价计算成功！')
+        setFile(null)
+        setPendingCsvText('')
+        setCsvPreview([])
+        fetchDbData()
+        setMatchingQueried(true)
+        // 顺便让单项查询也刷新选项数据
+        fetchQueryProducts()
+      } else {
+        throw new Error(result.error || '上传导入失败')
+      }
+    } catch (uploadErr) {
+      setErrorMsg(uploadErr.message)
+    } finally {
       setUploading(false)
     }
   }
 
   const cancelSelection = () => {
     setFile(null)
+    setPendingCsvText('')
     setCsvPreview([])
     setErrorMsg('')
     setSuccessMsg('')
@@ -431,6 +452,7 @@ export default function App() {
     setSuccessMsg('')
     setErrorMsg('')
     setFile(null)
+    setPendingCsvText('')
     setCsvPreview([])
     setShowConfirm(false)
     // 彻底重置单项查询模块的状态
@@ -465,18 +487,18 @@ export default function App() {
                 ref={fileInputRef}
                 type="file" 
                 className="file-input" 
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileChange}
               />
               <div className="dropzone-icon">📄</div>
-              <h3>拖拽 CSV 文件至此处，或点击选择文件</h3>
-              <p>支持格式：.csv 格式表格文件 (限定第一列物料号码、第二列物料长描述、第三列数量)</p>
+              <h3>拖拽 CSV 或 Excel 文件至此处，或点击选择文件</h3>
+              <p>支持格式：.csv, .xlsx, .xls 表格文件 (限定第一列物料号码、第二列物料长描述、第三列数量)</p>
             </div>
           ) : (
             <div>
               <div className="alert alert-warning" style={{ margin: '0 0 1.5rem 0' }}>
                 <div>
-                  <strong>⚠️ 注意：</strong> 开始导入后，系统将<strong>自动清空（清零）</strong>表 <code>test_sample</code> 中的所有现有记录，并被此 CSV 文件内容所覆写。数据清空不可撤销！
+                  <strong>⚠️ 注意：</strong> 开始导入后，系统将<strong>自动清空（清零）</strong>表 <code>test_sample</code> 中的所有现有记录，并被该文件（Excel 将在后台静默转换为 CSV 数据）所覆写。数据清空不可撤销！
                 </div>
               </div>
 
