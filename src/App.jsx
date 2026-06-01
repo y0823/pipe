@@ -380,14 +380,47 @@ export default function App() {
   const [queryLoading, setQueryLoading] = useState(false)
   const [queryError, setQueryError] = useState(null)
   const [dataSourceQuery, setDataSourceQuery] = useState('mock_data')
+  const [hasActiveSearch, setHasActiveSearch] = useState(false)
 
   // 互斥控制：当一个输入框有值时，另一个禁用
   const isThicknessDisabled = !!otherThickness
   const isOtherThicknessDisabled = !!localThickness
 
-  // 获取报价联合查询数据
-  const fetchQueryProducts = async () => {
-    const hasActive = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice)
+  // 仅获取级联选项列表（不加载具体列表数据，最大化节省 D1 Rows Read 额度）
+  const fetchCascadingOptions = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (selectedName) params.append('name', selectedName)
+      if (selectedDn1) params.append('dn1', selectedDn1)
+      if (selectedDn2) params.append('dn2', selectedDn2)
+      if (thickness && !isThicknessDisabled) params.append('thickness', thickness)
+      if (otherThickness && !isOtherThicknessDisabled) params.append('otherThickness', otherThickness)
+      if (selectedMaterial) params.append('material', selectedMaterial)
+      if (selectedVendor) params.append('vendor', selectedVendor)
+      if (minPrice) params.append('minPrice', minPrice)
+      if (maxPrice) params.append('maxPrice', maxPrice)
+      params.append('skipData', 'true')
+
+      const response = await fetch(`/api/products?${params.toString()}`)
+      if (response.ok) {
+        const resData = await response.json()
+        if (resData.success) {
+          if (resData.names) setNames(resData.names)
+          if (resData.dn1List) setDn1List(resData.dn1List)
+          if (resData.dn2List) setDn2List(resData.dn2List)
+          if (resData.materials) setMaterials(resData.materials)
+          if (resData.vendors) setVendors(resData.vendors)
+          if (resData.otherThicknessList) setOtherThicknessList(resData.otherThicknessList)
+          setDataSourceQuery(resData.source)
+        }
+      }
+    } catch (err) {
+      console.error('获取级联下拉选项异常：', err)
+    }
+  }
+
+  // 显式触发主列表报价查询
+  const fetchProductsList = async () => {
     setQueryLoading(true)
     setQueryError(null)
     try {
@@ -414,12 +447,9 @@ export default function App() {
 
       const resData = await response.json()
       if (resData.success) {
-        if (hasActive) {
-          setProducts(resData.data || [])
-        } else {
-          setProducts([])
-        }
-        // 动态同步多级筛选下拉框可用项
+        setProducts(resData.data || [])
+        setHasActiveSearch(true)
+        // 同步刷新级联选项，保持选项完整性
         if (resData.names) setNames(resData.names)
         if (resData.dn1List) setDn1List(resData.dn1List)
         if (resData.dn2List) setDn2List(resData.dn2List)
@@ -438,9 +468,11 @@ export default function App() {
     }
   }
 
-  // 联动监听
+  // 联动监听：选择器改变时执行级联，但重置“查询已激活”标志和结果列表
   useEffect(() => {
-    fetchQueryProducts()
+    fetchCascadingOptions()
+    setProducts([])
+    setHasActiveSearch(false)
   }, [
     selectedName,
     selectedDn1,
@@ -467,6 +499,8 @@ export default function App() {
     setLocalMinPrice('')
     setMaxPrice('')
     setLocalMaxPrice('')
+    setProducts([])
+    setHasActiveSearch(false)
   }
 
   // 切换标签页并清空展示区
@@ -918,12 +952,74 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {/* 显式查询与重置操作行 */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: '1rem', 
+            marginTop: '1.5rem', 
+            paddingTop: '1.2rem', 
+            borderTop: '1px solid var(--card-border)' 
+          }}>
+            <button 
+              className="btn btn-secondary" 
+              onClick={clearFilters}
+              style={{ padding: '0.55rem 1.4rem', fontSize: '0.85rem' }}
+            >
+              🧹 重置条件
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={fetchProductsList}
+              disabled={queryLoading || !(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice)}
+              style={{ 
+                padding: '0.55rem 1.8rem', 
+                fontSize: '0.85rem',
+                background: 'var(--accent-primary)',
+                boxShadow: '0 4px 12px 0 hsla(260, 85%, 65%, 0.25)',
+                fontWeight: '600',
+                opacity: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice) ? 1 : 0.6,
+                cursor: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice) ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {queryLoading ? (
+                <>
+                  <div className="loading-spinner" style={{ width: '12px', height: '12px', marginRight: '6px', borderTopColor: 'transparent' }}></div>
+                  查询中...
+                </>
+              ) : (
+                '🔍 开始查询报价'
+              )}
+            </button>
+          </div>
         </section>
 
         {/* 结果栏及清除按钮 */}
         {(() => {
           const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice);
-          return hasActiveQuery ? (
+          
+          if (!hasActiveQuery) {
+            return (
+              <div className="panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'var(--card-bg)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💡</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>暂无查询结果</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>请在上方选择任一筛选条件（如配件名称、直管径、材质或厂商）并点击“开始查询报价”启动检索。</p>
+              </div>
+            );
+          }
+
+          if (!hasActiveSearch) {
+            return (
+              <div className="panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'var(--card-bg)', border: '1px dashed var(--card-border)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚡</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>筛选条件已更新</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>您已更改了筛选配置，请点击上方面板右下角的 <strong>“🔍 开始查询报价”</strong> 按钮检索最新结果。</p>
+              </div>
+            );
+          }
+
+          return (
             <>
               <div className="results-header">
                 <div className="results-count">
@@ -1013,12 +1109,6 @@ export default function App() {
                 </div>
               )}
             </>
-          ) : (
-            <div className="panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', background: 'var(--card-bg)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💡</div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>暂无查询结果</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>请在上方选择任一筛选条件（如配件名称、直管径、材质或厂商）以启动报价检索。</p>
-            </div>
           );
         })()}
       </div>

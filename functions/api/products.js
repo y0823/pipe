@@ -35,6 +35,7 @@ export async function onRequest(context) {
     const vendor = url.searchParams.get("vendor") || "";
     const minPrice = parseFloat(url.searchParams.get("minPrice")) || null;
     const maxPrice = parseFloat(url.searchParams.get("maxPrice")) || null;
+    const skipData = url.searchParams.get("skipData") === "true";
 
     // 将所有请求参数整合，方便多级筛面（Faceted Search）条件筛选
     const activeFilters = {
@@ -193,6 +194,10 @@ export async function onRequest(context) {
     };
 
     // 并行运行所有数据库查询，确保高性能
+    const mainResultsPromise = skipData 
+      ? Promise.resolve({ results: [] }) 
+      : env.DB.prepare(sqlMain).bind(...mainQuery.sqlParams).all();
+
     const [
       mainResults,
       names,
@@ -202,7 +207,7 @@ export async function onRequest(context) {
       dn2List,
       otherThicknessList
     ] = await Promise.all([
-      env.DB.prepare(sqlMain).bind(...mainQuery.sqlParams).all(),
+      mainResultsPromise,
       runDistinctQuery("a.名称", "name"),
       runDistinctQuery("a.材质", "material"),
       runDistinctQuery("b.厂商", "vendor", "ORDER BY b.厂商 ASC"),
