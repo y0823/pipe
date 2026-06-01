@@ -1,0 +1,21 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+.wrangler
+.dev.vars
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Output directory
+dist/
+
+# Operating system files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+# Cloudflare Pages 部署配置文件
+name = "d1-csv-importer"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-05-31"
+
+# 绑定到您的 D1 数据库 pipefitting
+[[d1_databases]]
+binding = "DB"
+database_name = "pipefitting"
+database_id = "e96f3491-e7aa-4c7b-a585-e593f52c7fe9"
