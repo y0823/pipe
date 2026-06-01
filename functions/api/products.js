@@ -160,6 +160,18 @@ export async function onRequest(context) {
       return results.map(row => String(row[columnName.replace("a.", "").replace("b.", "")]));
     };
 
+    // 报价厂商无需与规格主表进行复杂的级联筛选与 INNER JOIN，直接从价格表单表去重查询，极大节省 Rows Read
+    const runVendorQuery = async () => {
+      const sql = `
+        SELECT DISTINCT 厂商 
+        FROM tbl_ss_smls_price 
+        WHERE 厂商 IS NOT NULL AND 厂商 != '空' AND 厂商 != '' 
+        ORDER BY 厂商 ASC
+      `;
+      const { results } = await env.DB.prepare(sql).all();
+      return results.map(row => String(row.厂商));
+    };
+
     // 并行运行所有数据库查询，确保高性能
     const mainResultsPromise = skipData 
       ? Promise.resolve({ results: [] }) 
@@ -177,7 +189,7 @@ export async function onRequest(context) {
       mainResultsPromise,
       runDistinctQuery("a.名称", "name"),
       runDistinctQuery("a.材质", "material"),
-      runDistinctQuery("b.厂商", "vendor", "ORDER BY b.厂商 ASC"),
+      runVendorQuery(),
       runDistinctQuery("a.DN1", "dn1", "ORDER BY CAST(a.DN1 AS REAL) ASC"),
       runDistinctQuery("a.DN2", "dn2", "ORDER BY CAST(a.DN2 AS REAL) ASC"),
       runDistinctQuery("a.其他壁厚", "otherThickness", "ORDER BY a.其他壁厚 ASC")
