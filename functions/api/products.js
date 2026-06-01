@@ -33,22 +33,7 @@ export async function onRequest(context) {
     const otherThickness = url.searchParams.get("otherThickness") || "";
     const material = url.searchParams.get("material") || "";
     const vendor = url.searchParams.get("vendor") || "";
-    const minPrice = parseFloat(url.searchParams.get("minPrice")) || null;
-    const maxPrice = parseFloat(url.searchParams.get("maxPrice")) || null;
     const skipData = url.searchParams.get("skipData") === "true";
-
-    // 将所有请求参数整合，方便多级筛面（Faceted Search）条件筛选
-    const activeFilters = {
-      name,
-      dn1,
-      dn2,
-      thickness,
-      otherThickness,
-      material,
-      vendor,
-      minPrice,
-      maxPrice
-    };
 
     // 检查 D1 数据库是否成功绑定
     if (!env.DB) {
@@ -64,10 +49,6 @@ export async function onRequest(context) {
         if (excludeKey !== "otherThickness" && otherThickness) list = list.filter(p => p["其他壁厚"] !== null && p["其他壁厚"] === otherThickness);
         if (excludeKey !== "material" && material) list = list.filter(p => p["材质"] === material);
         if (excludeKey !== "vendor" && vendor) list = list.filter(p => p["厂商"] === vendor);
-        if (excludeKey !== "price") {
-          if (minPrice !== null) list = list.filter(p => p["单价"] >= minPrice);
-          if (maxPrice !== null) list = list.filter(p => p["单价"] <= maxPrice);
-        }
         return list;
       };
 
@@ -87,8 +68,6 @@ export async function onRequest(context) {
       if (otherThickness) finalFiltered = finalFiltered.filter(p => p["其他壁厚"] !== null && p["其他壁厚"] === otherThickness);
       if (material) finalFiltered = finalFiltered.filter(p => p["材质"] === material);
       if (vendor) finalFiltered = finalFiltered.filter(p => p["厂商"] === vendor);
-      if (minPrice !== null) finalFiltered = finalFiltered.filter(p => p["单价"] >= minPrice);
-      if (maxPrice !== null) finalFiltered = finalFiltered.filter(p => p["单价"] <= maxPrice);
 
       return new Response(JSON.stringify({
         success: true,
@@ -138,16 +117,6 @@ export async function onRequest(context) {
         sqlConditions += " AND b.厂商 = ?";
         sqlParams.push(vendor);
       }
-      // 价格区间筛选
-      if (minPrice !== null) {
-        sqlConditions += " AND b.单价 >= ?";
-        sqlParams.push(minPrice);
-      }
-      if (maxPrice !== null) {
-        sqlConditions += " AND b.单价 <= ?";
-        sqlParams.push(maxPrice);
-      }
-
       return { sqlConditions, sqlParams };
     };
 
@@ -165,9 +134,7 @@ export async function onRequest(context) {
     const runDistinctQuery = async (columnName, excludeKey, orderSql = "") => {
       const condition = buildFacetedConditions(excludeKey);
       const needsJoin = columnName.startsWith("b.") || 
-                        (excludeKey !== "vendor" && vendor) || 
-                        minPrice !== null || 
-                        maxPrice !== null;
+                        (excludeKey !== "vendor" && vendor);
       
       let sql;
       if (needsJoin) {

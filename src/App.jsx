@@ -362,10 +362,6 @@ export default function App() {
   const [otherThickness, setOtherThickness] = useState('')
   const [selectedMaterial, setSelectedMaterial] = useState('')
   const [selectedVendor, setSelectedVendor] = useState('')
-  const [minPrice, setMinPrice] = useState('')
-  const [localMinPrice, setLocalMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
-  const [localMaxPrice, setLocalMaxPrice] = useState('')
 
   // 下拉列表数据源
   const [names, setNames] = useState([])
@@ -397,8 +393,6 @@ export default function App() {
       if (otherThickness && !isOtherThicknessDisabled) params.append('otherThickness', otherThickness)
       if (selectedMaterial) params.append('material', selectedMaterial)
       if (selectedVendor) params.append('vendor', selectedVendor)
-      if (minPrice) params.append('minPrice', minPrice)
-      if (maxPrice) params.append('maxPrice', maxPrice)
       params.append('skipData', 'true')
 
       const response = await fetch(`/api/products?${params.toString()}`)
@@ -432,8 +426,6 @@ export default function App() {
       if (otherThickness && !isOtherThicknessDisabled) params.append('otherThickness', otherThickness)
       if (selectedMaterial) params.append('material', selectedMaterial)
       if (selectedVendor) params.append('vendor', selectedVendor)
-      if (minPrice) params.append('minPrice', minPrice)
-      if (maxPrice) params.append('maxPrice', maxPrice)
 
       const response = await fetch(`/api/products?${params.toString()}`)
       if (!response.ok) {
@@ -480,9 +472,7 @@ export default function App() {
     thickness,
     otherThickness,
     selectedMaterial,
-    selectedVendor,
-    minPrice,
-    maxPrice
+    selectedVendor
   ])
 
   // 清空筛选
@@ -495,10 +485,6 @@ export default function App() {
     setOtherThickness('')
     setSelectedMaterial('')
     setSelectedVendor('')
-    setMinPrice('')
-    setLocalMinPrice('')
-    setMaxPrice('')
-    setLocalMaxPrice('')
     setProducts([])
     setHasActiveSearch(false)
   }
@@ -871,41 +857,7 @@ export default function App() {
               </select>
             </div>
 
-            {/* 单价区间 */}
-            <div className="filter-group">
-              <label>单价区间 (元) <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(回车/失焦生效)</span></label>
-              <div className="price-inputs">
-                <input
-                  id="min-price"
-                  type="number"
-                  placeholder="最低价"
-                  value={localMinPrice}
-                  onChange={(e) => setLocalMinPrice(e.target.value)}
-                  onBlur={() => setMinPrice(localMinPrice)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setMinPrice(localMinPrice)
-                    }
-                  }}
-                  min="0"
-                />
-                <span>至</span>
-                <input
-                  id="max-price"
-                  type="number"
-                  placeholder="最高价"
-                  value={localMaxPrice}
-                  onChange={(e) => setLocalMaxPrice(e.target.value)}
-                  onBlur={() => setMaxPrice(localMaxPrice)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setMaxPrice(localMaxPrice)
-                    }
-                  }}
-                  min="0"
-                />
-              </div>
-            </div>
+
 
             {/* 标准壁厚 - 互斥 */}
             <div className="filter-group" style={{ position: 'relative' }}>
@@ -972,15 +924,15 @@ export default function App() {
             <button 
               className="btn btn-primary" 
               onClick={fetchProductsList}
-              disabled={queryLoading || !(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice)}
+              disabled={queryLoading || !(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor)}
               style={{ 
                 padding: '0.55rem 1.8rem', 
                 fontSize: '0.85rem',
                 background: 'var(--accent-primary)',
                 boxShadow: '0 4px 12px 0 hsla(260, 85%, 65%, 0.25)',
                 fontWeight: '600',
-                opacity: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice) ? 1 : 0.6,
-                cursor: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice) ? 'pointer' : 'not-allowed'
+                opacity: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor) ? 1 : 0.6,
+                cursor: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor) ? 'pointer' : 'not-allowed'
               }}
             >
               {queryLoading ? (
@@ -997,7 +949,7 @@ export default function App() {
 
         {/* 结果栏及清除按钮 */}
         {(() => {
-          const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice);
+          const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor);
           
           if (!hasActiveQuery) {
             return (
