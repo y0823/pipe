@@ -331,8 +331,8 @@ export default function App() {
         </button>
       </div>
       <header>
-        <h1>📤 D1 数据库 CSV 导入控制台</h1>
-        <p className="subtitle">上传并覆写数据库表 `test_sample`（物料号码、物料长描述、数量）</p>
+        <h1>📤 对焊管件价格匹配及查询系统</h1>
+        <p className="subtitle">目前仅限镇海基地框架不锈钢有缝管件部分</p>
         
         {/* 数据源标签 */}
         <div style={{ marginTop: '1.2rem' }}>
