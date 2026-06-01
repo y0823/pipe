@@ -911,4 +911,11 @@ h1 {
   border: 1px solid hsla(35, 90%, 50%, 0.3);
 }
 
+.logout-btn:hover {
+  background: var(--accent-error) !important;
+  color: white !important;
+  border-color: var(--accent-error) !important;
+  box-shadow: 0 4px 10px hsla(350, 80%, 60%, 0.25);
+}
+
 

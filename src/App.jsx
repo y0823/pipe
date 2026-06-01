@@ -1116,20 +1116,44 @@ export default function App() {
               {theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式'}
             </button>
             {currentUser && (
-              <span style={{ 
-                fontSize: '0.72rem', 
-                color: 'var(--text-secondary)', 
-                textAlign: 'center', 
-                display: 'block', 
-                background: 'var(--input-bg)', 
-                padding: '0.45rem 0.5rem', 
-                borderRadius: '6px', 
-                border: '1px solid var(--card-border)', 
-                wordBreak: 'break-all',
-                marginTop: '0.4rem'
-              }} title={`当前登录用户: ${currentUser}`}>
-                👤 {currentUser}
-              </span>
+              <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <span style={{ 
+                  fontSize: '0.72rem', 
+                  color: 'var(--text-secondary)', 
+                  textAlign: 'center', 
+                  display: 'block', 
+                  background: 'var(--input-bg)', 
+                  padding: '0.45rem 0.5rem', 
+                  borderRadius: '6px', 
+                  border: '1px solid var(--card-border)', 
+                  wordBreak: 'break-all'
+                }} title={`当前登录用户: ${currentUser}`}>
+                  👤 {currentUser}
+                </span>
+                
+                <button 
+                  className="btn btn-secondary logout-btn" 
+                  style={{ 
+                    padding: '0.4rem', 
+                    fontSize: '0.72rem', 
+                    width: '100%', 
+                    justifyContent: 'center', 
+                    borderRadius: '6px',
+                    borderColor: 'hsla(350, 80%, 60%, 0.2)',
+                    color: 'var(--accent-error)',
+                    background: 'hsla(350, 80%, 60%, 0.05)',
+                    transition: 'all 0.2s ease',
+                    fontWeight: '600'
+                  }}
+                  onClick={() => {
+                    if (confirm('确认要退出当前登录的账户吗？')) {
+                      window.location.href = '/cdn-cgi/access/logout';
+                    }
+                  }}
+                >
+                  🚪 退出登录
+                </button>
+              </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
               镇海基地不锈钢有缝管件 v2.0
