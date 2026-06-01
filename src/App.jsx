@@ -49,6 +49,7 @@ export default function App() {
   }
 
   const [currentUser, setCurrentUser] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
 
   // 获取当前登录用户
   useEffect(() => {
@@ -1145,13 +1146,20 @@ export default function App() {
                     transition: 'all 0.2s ease',
                     fontWeight: '600'
                   }}
-                  onClick={() => {
-                    if (confirm('确认要退出当前登录的账户吗？')) {
+                  disabled={loggingOut}
+                  onClick={async () => {
+                    if (confirm('确认要退出当前登录的账户吗？系统将自动安全清空您在云端数据库中的所有临时上传与价格计算表。')) {
+                      setLoggingOut(true);
+                      try {
+                        await fetch('/api/cleanup', { method: 'POST' });
+                      } catch (err) {
+                        console.error('退出清理失败：', err);
+                      }
                       window.location.href = '/cdn-cgi/access/logout';
                     }
                   }}
                 >
-                  🚪 退出登录
+                  {loggingOut ? '⌛ 正在清除数据...' : '🚪 退出登录'}
                 </button>
               </div>
             )}
