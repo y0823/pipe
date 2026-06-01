@@ -362,7 +362,7 @@ export async function onRequestPost(context) {
     await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 换算后价格 REAL`).run();
     await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 最终核价 REAL`).run();
 
-    // 6. 执行后续的 UPDATE 计算逻辑 (多表数据关联与数学换算)
+    // 6. 执行后续的 UPDATE 计算逻辑 (多表数据关联与数学换算，已剔除 COALESCE 函数以启用数据库 B-Tree 索引)
     await env.DB.prepare(`
       UPDATE ${userPriceTable}
       SET 其他壁厚单价 = (
@@ -370,11 +370,11 @@ export async function onRequestPost(context) {
           FROM tbl_ss_smls a
           INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号
           WHERE
-              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
-              COALESCE(a.其他壁厚, '') = COALESCE(${userPriceTable}.其他壁厚, '')
+              a.名称 = ${userPriceTable}.匹配名称 AND
+              a.DN1 = ${userPriceTable}.DN1 AND
+              a.DN2 = ${userPriceTable}.DN2 AND
+              a.材质 = ${userPriceTable}.材质 AND
+              a.其他壁厚 IS ${userPriceTable}.其他壁厚
           LIMIT 1
       )
     `).run();
@@ -385,10 +385,10 @@ export async function onRequestPost(context) {
           SELECT a.壁厚
           FROM tbl_ss_smls a
           WHERE
-              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
+              a.名称 = ${userPriceTable}.匹配名称 AND
+              a.DN1 = ${userPriceTable}.DN1 AND
+              a.DN2 = ${userPriceTable}.DN2 AND
+              a.材质 = ${userPriceTable}.材质 AND
               a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
@@ -402,10 +402,10 @@ export async function onRequestPost(context) {
           FROM tbl_ss_smls a
           INNER JOIN tbl_ss_smls_price bp ON a.序号 = bp.序号
           WHERE
-              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
+              a.名称 = ${userPriceTable}.匹配名称 AND
+              a.DN1 = ${userPriceTable}.DN1 AND
+              a.DN2 = ${userPriceTable}.DN2 AND
+              a.材质 = ${userPriceTable}.材质 AND
               a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
