@@ -16,7 +16,9 @@ export async function onRequestGet(context) {
   };
 
   try {
-    const userEmail = request.headers.get("Cf-Access-Authenticated-User-Email") || "anonymous";
+    const userEmail = request.headers.get("cf-access-authenticated-user-email") || 
+                      request.headers.get("Cf-Access-Authenticated-User-Email") || 
+                      "anonymous";
     const cleanUser = userEmail.replace(/[^a-zA-Z0-9]/g, "_");
     const userPriceTable = `final_price_table_${cleanUser}`;
 

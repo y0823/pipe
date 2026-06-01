@@ -65,8 +65,10 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // 提取并清洗当前登录用户的邮箱
-    const userEmail = request.headers.get("Cf-Access-Authenticated-User-Email") || "anonymous";
+    // 提取并清洗当前登录用户的邮箱 (兼容 HTTP/2 全小写规范)
+    const userEmail = request.headers.get("cf-access-authenticated-user-email") || 
+                      request.headers.get("Cf-Access-Authenticated-User-Email") || 
+                      "anonymous";
     const cleanUser = userEmail.replace(/[^a-zA-Z0-9]/g, "_");
     const userPriceTable = `final_price_table_${cleanUser}`;
 
