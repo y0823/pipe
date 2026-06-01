@@ -358,11 +358,14 @@ export default function App() {
   const [selectedDn1, setSelectedDn1] = useState('')
   const [selectedDn2, setSelectedDn2] = useState('')
   const [thickness, setThickness] = useState('')
+  const [localThickness, setLocalThickness] = useState('')
   const [otherThickness, setOtherThickness] = useState('')
   const [selectedMaterial, setSelectedMaterial] = useState('')
   const [selectedVendor, setSelectedVendor] = useState('')
   const [minPrice, setMinPrice] = useState('')
+  const [localMinPrice, setLocalMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
+  const [localMaxPrice, setLocalMaxPrice] = useState('')
 
   // 下拉列表数据源
   const [names, setNames] = useState([])
@@ -380,7 +383,7 @@ export default function App() {
 
   // 互斥控制：当一个输入框有值时，另一个禁用
   const isThicknessDisabled = !!otherThickness
-  const isOtherThicknessDisabled = !!thickness
+  const isOtherThicknessDisabled = !!localThickness
 
   // 获取报价联合查询数据
   const fetchQueryProducts = async () => {
@@ -456,11 +459,14 @@ export default function App() {
     setSelectedDn1('')
     setSelectedDn2('')
     setThickness('')
+    setLocalThickness('')
     setOtherThickness('')
     setSelectedMaterial('')
     setSelectedVendor('')
     setMinPrice('')
+    setLocalMinPrice('')
     setMaxPrice('')
+    setLocalMaxPrice('')
   }
 
   // 切换标签页并清空展示区
@@ -833,14 +839,20 @@ export default function App() {
 
             {/* 单价区间 */}
             <div className="filter-group">
-              <label>单价区间 (元)</label>
+              <label>单价区间 (元) <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(回车/失焦生效)</span></label>
               <div className="price-inputs">
                 <input
                   id="min-price"
                   type="number"
                   placeholder="最低价"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
+                  value={localMinPrice}
+                  onChange={(e) => setLocalMinPrice(e.target.value)}
+                  onBlur={() => setMinPrice(localMinPrice)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setMinPrice(localMinPrice)
+                    }
+                  }}
                   min="0"
                 />
                 <span>至</span>
@@ -848,8 +860,14 @@ export default function App() {
                   id="max-price"
                   type="number"
                   placeholder="最高价"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
+                  value={localMaxPrice}
+                  onChange={(e) => setLocalMaxPrice(e.target.value)}
+                  onBlur={() => setMaxPrice(localMaxPrice)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setMaxPrice(localMaxPrice)
+                    }
+                  }}
                   min="0"
                 />
               </div>
@@ -857,13 +875,19 @@ export default function App() {
 
             {/* 标准壁厚 - 互斥 */}
             <div className="filter-group" style={{ position: 'relative' }}>
-              <label htmlFor="thickness-input">标准壁厚</label>
+              <label htmlFor="thickness-input">标准壁厚 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(回车/失焦生效)</span></label>
               <input
                 id="thickness-input"
                 type="text"
                 placeholder={isThicknessDisabled ? "已禁用 (其他壁厚生效中)" : "输入壁厚数值筛选..."}
-                value={thickness}
-                onChange={(e) => setThickness(e.target.value)}
+                value={localThickness}
+                onChange={(e) => setLocalThickness(e.target.value)}
+                onBlur={() => setThickness(localThickness)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setThickness(localThickness)
+                  }
+                }}
                 disabled={isThicknessDisabled}
               />
               {isThicknessDisabled && (

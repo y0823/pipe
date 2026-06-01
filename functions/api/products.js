@@ -163,14 +163,30 @@ export async function onRequest(context) {
     // 2. 为各个下拉菜单分别执行“排除自身条件”后的独特值查询，完成层层联动过滤
     const runDistinctQuery = async (columnName, excludeKey, orderSql = "") => {
       const condition = buildFacetedConditions(excludeKey);
-      const sql = `
-        SELECT DISTINCT ${columnName} 
-        FROM tbl_ss_smls a 
-        INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号 
-        ${condition.sqlConditions} 
-        AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
-        ${orderSql}
-      `;
+      const needsJoin = columnName.startsWith("b.") || 
+                        (excludeKey !== "vendor" && vendor) || 
+                        minPrice !== null || 
+                        maxPrice !== null;
+      
+      let sql;
+      if (needsJoin) {
+        sql = `
+          SELECT DISTINCT ${columnName} 
+          FROM tbl_ss_smls a 
+          INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号 
+          ${condition.sqlConditions} 
+          AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
+          ${orderSql}
+        `;
+      } else {
+        sql = `
+          SELECT DISTINCT ${columnName} 
+          FROM tbl_ss_smls a 
+          ${condition.sqlConditions} 
+          AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
+          ${orderSql}
+        `;
+      }
       
       const { results } = await env.DB.prepare(sql).bind(...condition.sqlParams).all();
       return results.map(row => String(row[columnName.replace("a.", "").replace("b.", "")]));
