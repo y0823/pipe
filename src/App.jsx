@@ -861,7 +861,7 @@ export default function App() {
 
             {/* 标准壁厚 - 互斥 */}
             <div className="filter-group" style={{ position: 'relative' }}>
-              <label htmlFor="thickness-input">标准壁厚 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(回车/失焦生效)</span></label>
+              <label htmlFor="thickness-input">标准壁厚</label>
               <input
                 id="thickness-input"
                 type="text"
