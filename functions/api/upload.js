@@ -65,10 +65,26 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // 提取并清洗当前登录用户的邮箱 (兼容 HTTP/2 全小写规范)
-    const userEmail = request.headers.get("cf-access-authenticated-user-email") || 
-                      request.headers.get("Cf-Access-Authenticated-User-Email") || 
-                      "anonymous";
+    // 提取当前登录用户的邮箱 (双保险：优先读 Request Header，其次解析 Cookie 中的 JWT token)
+    let userEmail = request.headers.get("cf-access-authenticated-user-email") || 
+                    request.headers.get("Cf-Access-Authenticated-User-Email");
+
+    if (!userEmail) {
+      const cookieHeader = request.headers.get("Cookie") || "";
+      const accessCookie = cookieHeader.split(";").find(c => c.trim().startsWith("CF_Authorization="));
+      if (accessCookie) {
+        try {
+          const token = accessCookie.split("=")[1];
+          const payloadBase64 = token.split(".")[1];
+          const payloadJson = atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/"));
+          const payload = JSON.parse(payloadJson);
+          userEmail = payload.email;
+        } catch (err) {
+          console.error("解析 JWT Cookie 失败:", err);
+        }
+      }
+    }
+    userEmail = userEmail || "anonymous";
     const cleanUser = userEmail.replace(/[^a-zA-Z0-9]/g, "_");
     const userPriceTable = `final_price_table_${cleanUser}`;
 
