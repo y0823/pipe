@@ -344,6 +344,7 @@ export default function App() {
 
   // 获取报价联合查询数据
   const fetchQueryProducts = async () => {
+    const hasActive = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || minPrice || maxPrice)
     setQueryLoading(true)
     setQueryError(null)
     try {
@@ -370,7 +371,11 @@ export default function App() {
 
       const resData = await response.json()
       if (resData.success) {
-        setProducts(resData.data || [])
+        if (hasActive) {
+          setProducts(resData.data || [])
+        } else {
+          setProducts([])
+        }
         // 动态同步多级筛选下拉框可用项
         if (resData.names) setNames(resData.names)
         if (resData.dn1List) setDn1List(resData.dn1List)
@@ -416,6 +421,22 @@ export default function App() {
     setSelectedVendor('')
     setMinPrice('')
     setMaxPrice('')
+  }
+
+  // 切换标签页并清空展示区
+  const handleTabChange = (tabName) => {
+    setActiveTab(tabName)
+    // 彻底重置价格匹配模块的状态
+    setMatchingQueried(false)
+    setSuccessMsg('')
+    setErrorMsg('')
+    setFile(null)
+    setCsvPreview([])
+    setShowConfirm(false)
+    // 彻底重置单项查询模块的状态
+    clearFilters()
+    setProducts([])
+    setQueryError(null)
   }
 
   // ==========================================
@@ -1027,7 +1048,7 @@ export default function App() {
           <nav className="sidebar-menu">
             <button 
               className={`sidebar-item ${activeTab === 'matching' ? 'active' : ''}`}
-              onClick={() => setActiveTab('matching')}
+              onClick={() => handleTabChange('matching')}
             >
               <span style={{ fontSize: '1.1rem' }}>📋</span>
               <span>价格匹配</span>
@@ -1035,7 +1056,7 @@ export default function App() {
             
             <button 
               className={`sidebar-item ${activeTab === 'query' ? 'active' : ''}`}
-              onClick={() => setActiveTab('query')}
+              onClick={() => handleTabChange('query')}
             >
               <span style={{ fontSize: '1.1rem' }}>🔍</span>
               <span>单项查询</span>
@@ -1043,7 +1064,7 @@ export default function App() {
 
             <button 
               className={`sidebar-item ${activeTab === 'admin' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin')}
+              onClick={() => handleTabChange('admin')}
             >
               <span style={{ fontSize: '1.1rem' }}>⚙️</span>
               <span>后台管理</span>

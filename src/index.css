@@ -476,19 +476,24 @@ h1 {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+  height: 16px;
+  width: 16px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-gradient-end);
+  background: var(--input-bg);
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--card-border);
-  border-radius: 3px;
+  background: var(--text-muted);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--accent-primary);
+  border: 1px solid transparent;
 }
+
 
 /* Resizable Columns Dragging Handle */
 .col-resizer {
