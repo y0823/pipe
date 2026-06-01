@@ -65,6 +65,11 @@ export async function onRequestPost(context) {
   }
 
   try {
+    // 提取并清洗当前登录用户的邮箱
+    const userEmail = request.headers.get("Cf-Access-Authenticated-User-Email") || "anonymous";
+    const cleanUser = userEmail.replace(/[^a-zA-Z0-9]/g, "_");
+    const userPriceTable = `final_price_table_${cleanUser}`;
+
     // 读取前端发送过来的 CSV 文本
     const csvText = await request.text();
     if (!csvText || csvText.trim() === "") {
@@ -85,14 +90,13 @@ export async function onRequestPost(context) {
     // 过滤掉完全为空的空行，并整理数据
     const validRows = [];
     for (const row of dataRows) {
-      // 过滤空行：如果这行没有列数，或者前两列全是空字符串，则跳过
       if (!row || row.length < 2) continue;
       if (row.length === 2 && row[0] === "" && row[1] === "") continue;
       if (row.length >= 3 && row[0] === "" && row[1] === "" && row[2] === "") continue;
       
       const partNo = row[0] || ""; // 物料号码
       const desc = row[1] || "";   // 物料长描述
-      const quantity = parseFloat(row[2]) || 0; // 数量（默认为 0）
+      const quantity = parseFloat(row[2]) || 0; // 数量
       
       validRows.push({ partNo, desc, quantity });
     }
@@ -114,29 +118,32 @@ export async function onRequestPost(context) {
 
     // --- 真实 D1 数据库操作流程 ---
     
-    // 1. 清空表 test_sample
-    await env.DB.prepare("DELETE FROM test_sample").run();
+    // 0. 安全补齐 test_sample 的 user_id 字段
+    await env.DB.prepare("ALTER TABLE test_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
+
+    // 1. 清空当前登录用户的数据记录
+    await env.DB.prepare("DELETE FROM test_sample WHERE user_id = ?").bind(userEmail).run();
 
     // 2. 准备批量写入语句 (D1 batch APIs)
     const statements = [];
     const insertStmt = env.DB.prepare(
-      "INSERT INTO test_sample (物料号码, 物料长描述, 数量) VALUES (?, ?, ?)"
+      "INSERT INTO test_sample (物料号码, 物料长描述, 数量, user_id) VALUES (?, ?, ?, ?)"
     );
 
     for (const item of validRows) {
       statements.push(
-        insertStmt.bind(item.partNo, item.desc, item.quantity)
+        insertStmt.bind(item.partNo, item.desc, item.quantity, userEmail)
       );
     }
 
     // 3. 在单个事务中执行所有插入，极大缩短执行时间并保证数据完整性
     await env.DB.batch(statements);
 
-    // 4. 数据导入完成后，直接在 D1 SQLite 中执行多表关联与聚合定价计算，更新 final_price_table
-    await env.DB.prepare("DROP TABLE IF EXISTS final_price_table").run();
+    // 4. 数据导入完成后，直接在 D1 SQLite 中执行多表关联与聚合定价计算，更新专属用户的 final_price_table_xxx
+    await env.DB.prepare(`DROP TABLE IF EXISTS ${userPriceTable}`).run();
 
     const createTableSql = `
-      CREATE TABLE final_price_table AS
+      CREATE TABLE ${userPriceTable} AS
       SELECT 
           s.物料号码,
           s.物料长描述,
@@ -317,6 +324,7 @@ export async function onRequestPost(context) {
                               REPLACE(test_sample_table.物料长描述, '×DN', '厚度') AS customText,
                               REPLACE(REPLACE(test_sample_table.物料长描述, '×DN', '厚度'), ' DN', 'DN') AS tempText
                           FROM test_sample test_sample_table
+                          WHERE test_sample_table.user_id = ?
                       ) L1
                   ) L2
               ) L3
@@ -327,67 +335,67 @@ export async function onRequestPost(context) {
       ON 
           SUBSTR(s.物料号码, 1, 6) = p.代码;
     `;
-    await env.DB.prepare(createTableSql).run();
+    await env.DB.prepare(createTableSql).bind(userEmail).run();
 
-    // 5. 在新生成的 final_price_table 表上添加 5 个后续定价运算字段
-    await env.DB.prepare("ALTER TABLE final_price_table ADD COLUMN 其他壁厚单价 REAL").run();
-    await env.DB.prepare("ALTER TABLE final_price_table ADD COLUMN 匹配框架表壁厚 REAL").run();
-    await env.DB.prepare("ALTER TABLE final_price_table ADD COLUMN 数字壁厚单价 REAL").run();
-    await env.DB.prepare("ALTER TABLE final_price_table ADD COLUMN 换算后价格 REAL").run();
-    await env.DB.prepare("ALTER TABLE final_price_table ADD COLUMN 最终核价 REAL").run();
+    // 5. 在新生成的 final_price_table_xxx 表上添加 5 个后续定价运算字段
+    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 其他壁厚单价 REAL`).run();
+    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 匹配框架表壁厚 REAL`).run();
+    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 数字壁厚单价 REAL`).run();
+    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 换算后价格 REAL`).run();
+    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 最终核价 REAL`).run();
 
     // 6. 执行后续的 UPDATE 计算逻辑 (多表数据关联与数学换算)
     await env.DB.prepare(`
-      UPDATE final_price_table
+      UPDATE ${userPriceTable}
       SET 其他壁厚单价 = (
           SELECT b.单价
           FROM tbl_ss_smls a
           INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号
           WHERE
-              COALESCE(a.名称, '') = COALESCE(final_price_table.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(final_price_table.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(final_price_table.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(final_price_table.材质, '') AND
-              COALESCE(a.其他壁厚, '') = COALESCE(final_price_table.其他壁厚, '')
+              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
+              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
+              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
+              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
+              COALESCE(a.其他壁厚, '') = COALESCE(${userPriceTable}.其他壁厚, '')
           LIMIT 1
       )
     `).run();
 
     await env.DB.prepare(`
-      UPDATE final_price_table
+      UPDATE ${userPriceTable}
       SET 匹配框架表壁厚 = (
           SELECT a.壁厚
           FROM tbl_ss_smls a
           WHERE
-              COALESCE(a.名称, '') = COALESCE(final_price_table.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(final_price_table.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(final_price_table.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(final_price_table.材质, '') AND
-              a.壁厚 >= final_price_table.数字壁厚
+              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
+              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
+              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
+              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
+              a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
       )
     `).run();
 
     await env.DB.prepare(`
-      UPDATE final_price_table
+      UPDATE ${userPriceTable}
       SET 数字壁厚单价 = (
           SELECT bp.单价
           FROM tbl_ss_smls a
           INNER JOIN tbl_ss_smls_price bp ON a.序号 = bp.序号
           WHERE
-              COALESCE(a.名称, '') = COALESCE(final_price_table.匹配名称, '') AND
-              COALESCE(a.DN1, '')  = COALESCE(final_price_table.DN1, '') AND
-              COALESCE(a.DN2, '')  = COALESCE(final_price_table.DN2, '') AND
-              COALESCE(a.材质, '') = COALESCE(final_price_table.材质, '') AND
-              a.壁厚 >= final_price_table.数字壁厚
+              COALESCE(a.名称, '') = COALESCE(${userPriceTable}.匹配名称, '') AND
+              COALESCE(a.DN1, '')  = COALESCE(${userPriceTable}.DN1, '') AND
+              COALESCE(a.DN2, '')  = COALESCE(${userPriceTable}.DN2, '') AND
+              COALESCE(a.材质, '') = COALESCE(${userPriceTable}.材质, '') AND
+              a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
       )
     `).run();
 
     await env.DB.prepare(`
-      UPDATE final_price_table
+      UPDATE ${userPriceTable}
       SET 换算后价格 = ROUND((数字壁厚单价 / 匹配框架表壁厚) * 数字壁厚, 2)
       WHERE
           数字壁厚 IS NOT NULL
@@ -396,7 +404,7 @@ export async function onRequestPost(context) {
     `).run();
 
     await env.DB.prepare(`
-      UPDATE final_price_table
+      UPDATE ${userPriceTable}
       SET 最终核价 = ROUND(
           CASE 
               WHEN 其他壁厚单价 IS NULL THEN 换算后价格
@@ -420,7 +428,7 @@ export async function onRequestPost(context) {
       success: true,
       source: "d1_database",
       count: validRows.length,
-      message: `成功清空历史数据，完成批量导入，并成功执行了完整的核价及系数计算流程 (final_price_table)！`
+      message: `成功清空您的历史样本，完成批量导入，并成功执行了专属核价流程 (${userPriceTable})！`
     }), { headers: corsHeaders });
 
   } catch (error) {

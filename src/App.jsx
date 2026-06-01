@@ -48,6 +48,24 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark')
   }
 
+  const [currentUser, setCurrentUser] = useState('')
+
+  // 获取当前登录用户
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/me')
+        if (res.ok) {
+          const data = await res.json()
+          setCurrentUser(data.email)
+        }
+      } catch (err) {
+        console.error('获取用户信息失败：', err)
+      }
+    }
+    fetchUser()
+  }, [])
+
   // ==========================================
   // 1. “价格匹配”模块状态与逻辑 (Price Matching Tab)
   // ==========================================
@@ -1097,6 +1115,22 @@ export default function App() {
             <button className="theme-toggle-btn" style={{ width: '100%', justifyContent: 'center' }} onClick={toggleTheme} title="切换主题">
               {theme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式'}
             </button>
+            {currentUser && (
+              <span style={{ 
+                fontSize: '0.72rem', 
+                color: 'var(--text-secondary)', 
+                textAlign: 'center', 
+                display: 'block', 
+                background: 'var(--input-bg)', 
+                padding: '0.45rem 0.5rem', 
+                borderRadius: '6px', 
+                border: '1px solid var(--card-border)', 
+                wordBreak: 'break-all',
+                marginTop: '0.4rem'
+              }} title={`当前登录用户: ${currentUser}`}>
+                👤 {currentUser}
+              </span>
+            )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
               镇海基地不锈钢有缝管件 v2.0
             </span>

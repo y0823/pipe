@@ -6,7 +6,7 @@ const MOCK_CURRENT_DATA = [
 ];
 
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { request, env } = context;
   
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -16,6 +16,10 @@ export async function onRequestGet(context) {
   };
 
   try {
+    const userEmail = request.headers.get("Cf-Access-Authenticated-User-Email") || "anonymous";
+    const cleanUser = userEmail.replace(/[^a-zA-Z0-9]/g, "_");
+    const userPriceTable = `final_price_table_${cleanUser}`;
+
     if (!env.DB) {
       return new Response(JSON.stringify({
         success: true,
@@ -25,18 +29,22 @@ export async function onRequestGet(context) {
     }
 
     let results = [];
-    let tableUsed = "test_sample";
+    let tableUsed = userPriceTable;
 
     try {
-      // 优先从计算完成的 final_price_table 中查询
-      const query = await env.DB.prepare("SELECT * FROM final_price_table LIMIT 100").all();
+      // 优先从计算完成的专属用户的 final_price_table_xxx 中查询
+      const query = await env.DB.prepare(`SELECT * FROM ${userPriceTable} LIMIT 100`).all();
       results = query.results || [];
-      tableUsed = "final_price_table";
     } catch (dbErr) {
-      // 如果计算表还未生成或报错，退回到 test_sample
-      const query = await env.DB.prepare("SELECT * FROM test_sample LIMIT 100").all();
-      results = query.results || [];
-      tableUsed = "test_sample";
+      // 如果计算表还未生成，退回到 test_sample 中过滤查询当前用户的原始记录
+      try {
+        const query = await env.DB.prepare("SELECT * FROM test_sample WHERE user_id = ? LIMIT 100").bind(userEmail).all();
+        results = query.results || [];
+        tableUsed = "test_sample";
+      } catch (sampleErr) {
+        results = [];
+        tableUsed = "none";
+      }
     }
 
     return new Response(JSON.stringify({
