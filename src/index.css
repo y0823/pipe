@@ -683,7 +683,8 @@ h1 {
 .filter-group select,
 .price-inputs input[type="number"] {
   width: 100%;
-  padding: 0.7rem 0.9rem;
+  height: 42px; /* Explicit uniform height */
+  padding: 0.5rem 0.9rem;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: 8px;
