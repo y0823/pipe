@@ -289,8 +289,6 @@ export default function App() {
         setCsvPreview([])
         fetchDbData()
         setMatchingQueried(true)
-        // 顺便让单项查询也刷新选项数据
-        fetchCascadingOptions()
       } else {
         throw new Error(result.error || '上传导入失败')
       }
@@ -371,6 +369,9 @@ export default function App() {
   const [vendors, setVendors] = useState([])
   const [otherThicknessList, setOtherThicknessList] = useState([])
 
+  // 纯前端级联状态
+  const [allSpecs, setAllSpecs] = useState([])
+
   // 数据展示与加载状态
   const [products, setProducts] = useState([])
   const [queryLoading, setQueryLoading] = useState(false)
@@ -382,36 +383,65 @@ export default function App() {
   const isThicknessDisabled = !!otherThickness
   const isOtherThicknessDisabled = !!localThickness
 
-  // 仅获取级联选项列表（不加载具体列表数据，最大化节省 D1 Rows Read 额度）
-  const fetchCascadingOptions = async () => {
-    try {
-      const params = new URLSearchParams()
-      if (selectedName) params.append('name', selectedName)
-      if (selectedDn1) params.append('dn1', selectedDn1)
-      if (selectedDn2) params.append('dn2', selectedDn2)
-      if (thickness && !isThicknessDisabled) params.append('thickness', thickness)
-      if (otherThickness && !isOtherThicknessDisabled) params.append('otherThickness', otherThickness)
-      if (selectedMaterial) params.append('material', selectedMaterial)
-      if (selectedVendor) params.append('vendor', selectedVendor)
-      params.append('skipData', 'true')
-
-      const response = await fetch(`/api/products?${params.toString()}`)
-      if (response.ok) {
-        const resData = await response.json()
-        if (resData.success) {
-          if (resData.names) setNames(resData.names)
-          if (resData.dn1List) setDn1List(resData.dn1List)
-          if (resData.dn2List) setDn2List(resData.dn2List)
-          if (resData.materials) setMaterials(resData.materials)
-          if (resData.vendors) setVendors(resData.vendors)
-          if (resData.otherThicknessList) setOtherThicknessList(resData.otherThicknessList)
-          setDataSourceQuery(resData.source)
+  // 页面初始加载时，一次性拉取所有产品规格（不包含价格数据）和所有厂商
+  // 这只会消耗极少量的 D1 Reads，后续所有的级联过滤完全在前端内存中零成本完成
+  useEffect(() => {
+    const initAllSpecs = async () => {
+      try {
+        const response = await fetch(`/api/products?fetchAllSpecs=true`)
+        if (response.ok) {
+          const resData = await response.json()
+          if (resData.success) {
+            setAllSpecs(resData.allSpecs || [])
+            setVendors(resData.allVendors || [])
+          }
         }
+      } catch (err) {
+        console.error('获取全部产品规格失败：', err)
       }
-    } catch (err) {
-      console.error('获取级联下拉选项异常：', err)
     }
-  }
+    initAllSpecs()
+  }, [])
+
+  // 纯前端内存级联过滤逻辑：当任意选择发生变化时，基于全量 allSpecs 计算其他下拉框的可用选项
+  useEffect(() => {
+    if (allSpecs.length === 0) return
+
+    const getValidOptions = (excludeKey) => {
+      return [...new Set(allSpecs.filter(p => {
+        // 刻面搜索：除了正在计算的字段自身外，如果其他字段有选择值，则该规格必须符合其他字段的值
+        if (excludeKey !== 'name' && selectedName && p['名称'] !== selectedName) return false
+        if (excludeKey !== 'dn1' && selectedDn1 && String(p['DN1']) !== selectedDn1) return false
+        if (excludeKey !== 'dn2' && selectedDn2 && String(p['DN2']) !== selectedDn2) return false
+        if (excludeKey !== 'thickness' && thickness && !isThicknessDisabled && p['壁厚'] !== null && String(p['壁厚']) !== thickness) return false
+        if (excludeKey !== 'otherThickness' && otherThickness && !isOtherThicknessDisabled && p['其他壁厚'] !== null && p['其他壁厚'] !== otherThickness) return false
+        if (excludeKey !== 'material' && selectedMaterial && p['材质'] !== selectedMaterial) return false
+        return true
+      }).map(p => {
+        if (excludeKey === 'name') return p['名称']
+        if (excludeKey === 'dn1') return String(p['DN1'])
+        if (excludeKey === 'dn2') return String(p['DN2'])
+        if (excludeKey === 'otherThickness') return String(p['其他壁厚'])
+        if (excludeKey === 'material') return p['材质']
+        return null
+      }))].filter(x => x && x !== 'null' && x !== '空')
+    }
+
+    setNames(getValidOptions('name').sort())
+    
+    // DN 值按照数值大小排序
+    const sortNumeric = (a, b) => {
+      const numA = parseFloat(a) || 0
+      const numB = parseFloat(b) || 0
+      return numA - numB
+    }
+    setDn1List(getValidOptions('dn1').sort(sortNumeric))
+    setDn2List(getValidOptions('dn2').sort(sortNumeric))
+    
+    setMaterials(getValidOptions('material').sort())
+    setOtherThicknessList(getValidOptions('otherThickness').sort())
+
+  }, [allSpecs, selectedName, selectedDn1, selectedDn2, thickness, otherThickness, selectedMaterial, isThicknessDisabled, isOtherThicknessDisabled])
 
   // 显式触发主列表报价查询
   const fetchProductsList = async () => {
@@ -441,13 +471,6 @@ export default function App() {
       if (resData.success) {
         setProducts(resData.data || [])
         setHasActiveSearch(true)
-        // 同步刷新级联选项，保持选项完整性
-        if (resData.names) setNames(resData.names)
-        if (resData.dn1List) setDn1List(resData.dn1List)
-        if (resData.dn2List) setDn2List(resData.dn2List)
-        if (resData.materials) setMaterials(resData.materials)
-        if (resData.vendors) setVendors(resData.vendors)
-        if (resData.otherThicknessList) setOtherThicknessList(resData.otherThicknessList)
         setDataSourceQuery(resData.source)
       } else {
         throw new Error(resData.error || '获取报价数据失败')
@@ -460,9 +483,8 @@ export default function App() {
     }
   }
 
-  // 联动监听：选择器改变时执行级联，但重置“查询已激活”标志和结果列表
+  // 联动监听：选择器改变时，重置“查询已激活”标志和结果列表
   useEffect(() => {
-    fetchCascadingOptions()
     setProducts([])
     setHasActiveSearch(false)
   }, [

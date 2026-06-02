@@ -34,6 +34,7 @@ export async function onRequest(context) {
     const material = url.searchParams.get("material") || "";
     const vendor = url.searchParams.get("vendor") || "";
     const skipData = url.searchParams.get("skipData") === "true";
+    const fetchAllSpecs = url.searchParams.get("fetchAllSpecs") === "true";
 
     // 检查 D1 数据库是否成功绑定
     if (!env.DB) {
@@ -78,11 +79,37 @@ export async function onRequest(context) {
         vendors,
         dn1List,
         dn2List,
-        otherThicknessList
+        otherThicknessList,
+        allSpecs: MOCK_PIPEFITTINGS_JOINED, // Mock all specs
+        allVendors: vendors
       }), { headers: corsHeaders });
     }
 
     // --- 真实 D1 数据库级联查询逻辑 ---
+
+    if (fetchAllSpecs) {
+      // 全量获取规格基础表用于前端纯内存级联筛选，只耗费 1000 多行读取一次
+      const specsSql = `SELECT 名称, DN1, DN2, 壁厚, 材质, 其他壁厚 FROM tbl_ss_smls`;
+      // 获取一次所有厂商
+      const vendorsSql = `
+        SELECT DISTINCT 厂商 
+        FROM tbl_ss_smls_price 
+        WHERE 厂商 IS NOT NULL AND 厂商 != '空' AND 厂商 != '' 
+        ORDER BY 厂商 ASC
+      `;
+      
+      const [specsResults, vendorsResults] = await Promise.all([
+        env.DB.prepare(specsSql).all(),
+        env.DB.prepare(vendorsSql).all()
+      ]);
+
+      return new Response(JSON.stringify({
+        success: true,
+        source: "d1_database",
+        allSpecs: specsResults.results,
+        allVendors: vendorsResults.results.map(row => String(row.厂商))
+      }), { headers: corsHeaders });
+    }
 
     // 辅助函数：构建排除某一字段自身筛选条件后的 SQL WHERE 条件，实现刻面搜索
     // ignoreVendor: 如果为 true，则在级联下拉时完全忽略厂商条件，避免不必要的联表查询
@@ -121,7 +148,7 @@ export async function onRequest(context) {
       return { sqlConditions, sqlParams };
     };
 
-    // 1. 获取主列表查询条件（应用所有过滤器，包括厂商）
+    // 获取主列表查询条件（应用所有过滤器，包括厂商）
     const mainQuery = buildFacetedConditions(null, false);
     const sqlMain = `
       SELECT a.序号, a.名称, a.DN1, a.DN2, a.壁厚, a.材质, a.其他壁厚, b.厂商, b.单价 
@@ -131,68 +158,17 @@ export async function onRequest(context) {
       ORDER BY a.序号 ASC, b.单价 ASC LIMIT 200
     `;
 
-    // 2. 为各个下拉菜单分别执行“排除自身条件”后的独特值查询，完成层层联动过滤
-    const runDistinctQuery = async (columnName, excludeKey, orderSql = "") => {
-      // 下拉级联仅在产品规格表(a)单表上联动过滤，厂商不参与级联，传入 ignoreVendor = true
-      const condition = buildFacetedConditions(excludeKey, true);
-      
-      const sql = `
-        SELECT DISTINCT ${columnName} 
-        FROM tbl_ss_smls a 
-        ${condition.sqlConditions} 
-        AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
-        ${orderSql}
-      `;
-      
-      const { results } = await env.DB.prepare(sql).bind(...condition.sqlParams).all();
-      return results.map(row => String(row[columnName.replace("a.", "").replace("b.", "")]));
-    };
-
-    // 报价厂商无需与规格主表进行复杂的级联筛选与 INNER JOIN，直接从价格表单表去重查询，极大节省 Rows Read
-    const runVendorQuery = async () => {
-      const sql = `
-        SELECT DISTINCT 厂商 
-        FROM tbl_ss_smls_price 
-        WHERE 厂商 IS NOT NULL AND 厂商 != '空' AND 厂商 != '' 
-        ORDER BY 厂商 ASC
-      `;
-      const { results } = await env.DB.prepare(sql).all();
-      return results.map(row => String(row.厂商));
-    };
-
-    // 并行运行所有数据库查询，确保高性能
+    // 仅运行主数据查询，不再执行昂贵的 DISTINCT 级联查询
     const mainResultsPromise = skipData 
       ? Promise.resolve({ results: [] }) 
       : env.DB.prepare(sqlMain).bind(...mainQuery.sqlParams).all();
 
-    const [
-      mainResults,
-      names,
-      materials,
-      vendors,
-      dn1List,
-      dn2List,
-      otherThicknessList
-    ] = await Promise.all([
-      mainResultsPromise,
-      runDistinctQuery("a.名称", "name"),
-      runDistinctQuery("a.材质", "material"),
-      runVendorQuery(),
-      runDistinctQuery("a.DN1", "dn1", "ORDER BY CAST(a.DN1 AS REAL) ASC"),
-      runDistinctQuery("a.DN2", "dn2", "ORDER BY CAST(a.DN2 AS REAL) ASC"),
-      runDistinctQuery("a.其他壁厚", "otherThickness", "ORDER BY a.其他壁厚 ASC")
-    ]);
+    const mainResults = await mainResultsPromise;
 
     return new Response(JSON.stringify({
       success: true,
       source: "d1_database",
-      data: mainResults.results,
-      names,
-      materials,
-      vendors,
-      dn1List,
-      dn2List,
-      otherThicknessList
+      data: mainResults.results
     }), { headers: corsHeaders });
 
   } catch (error) {
