@@ -393,7 +393,8 @@ export default function App() {
           const resData = await response.json()
           if (resData.success) {
             setAllSpecs(resData.allSpecs || [])
-            setVendors(resData.allVendors || [])
+            setNames(resData.allNames || []) // 名称从 test_prod_name 获取
+            setVendors(resData.allVendors || []) // 厂商固化
           }
         }
       } catch (err) {
@@ -413,12 +414,11 @@ export default function App() {
         if (excludeKey !== 'name' && selectedName && p['名称'] !== selectedName) return false
         if (excludeKey !== 'dn1' && selectedDn1 && String(p['DN1']) !== selectedDn1) return false
         if (excludeKey !== 'dn2' && selectedDn2 && String(p['DN2']) !== selectedDn2) return false
-        if (excludeKey !== 'thickness' && thickness && !isThicknessDisabled && p['壁厚'] !== null && String(p['壁厚']) !== thickness) return false
         if (excludeKey !== 'otherThickness' && otherThickness && !isOtherThicknessDisabled && p['其他壁厚'] !== null && p['其他壁厚'] !== otherThickness) return false
         if (excludeKey !== 'material' && selectedMaterial && p['材质'] !== selectedMaterial) return false
         return true
       }).map(p => {
-        if (excludeKey === 'name') return p['名称']
+        // 名称不再从组合中提取去重，名称由 API 直接下发
         if (excludeKey === 'dn1') return String(p['DN1'])
         if (excludeKey === 'dn2') return String(p['DN2'])
         if (excludeKey === 'otherThickness') return String(p['其他壁厚'])
@@ -426,8 +426,6 @@ export default function App() {
         return null
       }))].filter(x => x && x !== 'null' && x !== '空')
     }
-
-    setNames(getValidOptions('name').sort())
     
     // DN 值按照数值大小排序
     const sortNumeric = (a, b) => {
@@ -441,7 +439,7 @@ export default function App() {
     setMaterials(getValidOptions('material').sort())
     setOtherThicknessList(getValidOptions('otherThickness').sort())
 
-  }, [allSpecs, selectedName, selectedDn1, selectedDn2, thickness, otherThickness, selectedMaterial, isThicknessDisabled, isOtherThicknessDisabled])
+  }, [allSpecs, selectedName, selectedDn1, selectedDn2, otherThickness, selectedMaterial, isOtherThicknessDisabled])
 
   // 显式触发主列表报价查询
   const fetchProductsList = async () => {
@@ -1252,7 +1250,7 @@ export default function App() {
               </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-              镇海基地不锈钢有缝管件 v2.3 (更新于: 2026-06-02 12:59)
+              镇海基地不锈钢有缝管件 v2.4 (更新于: 2026-06-02 13:30)
             </span>
           </div>
         </aside>

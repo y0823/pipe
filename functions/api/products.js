@@ -88,22 +88,26 @@ export async function onRequest(context) {
     // --- 真实 D1 数据库级联查询逻辑 ---
 
     if (fetchAllSpecs) {
-      // 全量获取规格基础表用于前端纯内存级联筛选，只耗费 1000 多行读取一次
-      const specsSql = `SELECT 名称, DN1, DN2, 壁厚, 材质, 其他壁厚 FROM tbl_ss_smls`;
+      // 1. 获取级联关系的组合去重字典 (剥离标准壁厚)
+      const specsSql = `SELECT DISTINCT 名称, DN1, DN2, 材质, 其他壁厚 FROM tbl_ss_smls`;
       
-      // 按照您的要求，厂商名单已经固化至专属的小型数据表 tbl_vendors 中，支持未来在数据库中动态维护
-      const vendorsSql = `SELECT 厂商 FROM tbl_vendors ORDER BY 厂商 ASC`;
+      // 2. 根据要求，名称列表从 test_prod_name 表单独获取，作为独立字典
+      const namesSql = `SELECT DISTINCT 物资名称 FROM test_prod_name WHERE 物资名称 IS NOT NULL`;
       
-      const [specsResults, vendorsResults] = await Promise.all([
+      // 3. 厂商名单固化
+      const staticVendors = ["东台有缝不锈", "久立有缝不锈", "实华有缝不锈", "恒通有缝不锈", "方泉有缝不锈", "沧海有缝不锈"];
+      
+      const [specsResults, namesResults] = await Promise.all([
         env.DB.prepare(specsSql).all(),
-        env.DB.prepare(vendorsSql).all()
+        env.DB.prepare(namesSql).all()
       ]);
 
       return new Response(JSON.stringify({
         success: true,
         source: "d1_database",
         allSpecs: specsResults.results,
-        allVendors: vendorsResults.results.map(row => String(row.厂商))
+        allNames: namesResults.results.map(row => String(row.物资名称)),
+        allVendors: staticVendors
       }), { headers: corsHeaders });
     }
 
