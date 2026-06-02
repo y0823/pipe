@@ -1311,7 +1311,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v2.7 (使用说明更新 | 更新于: 2026-06-02 20:25)
+              版本：v2.7
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
+              (使用说明更新 | 更新于: 2026-06-02 20:25)
             </span>
           </div>
         </aside>
