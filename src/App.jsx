@@ -395,6 +395,9 @@ export default function App() {
             setAllSpecs(resData.allSpecs || [])
             setNames(resData.allNames || []) // 名称从 test_prod_name 获取
             setVendors(resData.allVendors || []) // 厂商固化
+            if (resData.source) {
+              setDataSourceQuery(resData.source)
+            }
           }
         }
       } catch (err) {
@@ -1250,7 +1253,7 @@ export default function App() {
               </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-              镇海基地不锈钢有缝管件 v2.5 (移动端适配版 | 更新于: 2026-06-02 18:00)
+              镇海基地不锈钢有缝管件 v2.6 (更新于: 2026-06-02 18:05)
             </span>
           </div>
         </aside>
