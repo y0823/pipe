@@ -90,24 +90,17 @@ export async function onRequest(context) {
     if (fetchAllSpecs) {
       // 全量获取规格基础表用于前端纯内存级联筛选，只耗费 1000 多行读取一次
       const specsSql = `SELECT 名称, DN1, DN2, 壁厚, 材质, 其他壁厚 FROM tbl_ss_smls`;
-      // 获取一次所有厂商
-      const vendorsSql = `
-        SELECT DISTINCT 厂商 
-        FROM tbl_ss_smls_price 
-        WHERE 厂商 IS NOT NULL AND 厂商 != '空' AND 厂商 != '' 
-        ORDER BY 厂商 ASC
-      `;
       
-      const [specsResults, vendorsResults] = await Promise.all([
-        env.DB.prepare(specsSql).all(),
-        env.DB.prepare(vendorsSql).all()
-      ]);
+      // 厂商名单目前已固化，直接在代码中返回，彻底省去 18366 行的去重查询开销
+      const staticVendors = ["东台有缝不锈", "久立有缝不锈", "实华有缝不锈", "恒通有缝不锈", "方泉有缝不锈", "沧海有缝不锈"];
+      
+      const specsResults = await env.DB.prepare(specsSql).all();
 
       return new Response(JSON.stringify({
         success: true,
         source: "d1_database",
         allSpecs: specsResults.results,
-        allVendors: vendorsResults.results.map(row => String(row.厂商))
+        allVendors: staticVendors
       }), { headers: corsHeaders });
     }
 
