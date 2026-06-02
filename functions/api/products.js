@@ -85,7 +85,8 @@ export async function onRequest(context) {
     // --- 真实 D1 数据库级联查询逻辑 ---
 
     // 辅助函数：构建排除某一字段自身筛选条件后的 SQL WHERE 条件，实现刻面搜索
-    const buildFacetedConditions = (excludeKey) => {
+    // ignoreVendor: 如果为 true，则在级联下拉时完全忽略厂商条件，避免不必要的联表查询
+    const buildFacetedConditions = (excludeKey, ignoreVendor = false) => {
       let sqlConditions = " WHERE 1=1";
       const sqlParams = [];
 
@@ -113,15 +114,15 @@ export async function onRequest(context) {
         sqlConditions += " AND a.材质 = ?";
         sqlParams.push(material);
       }
-      if (excludeKey !== "vendor" && vendor) {
+      if (!ignoreVendor && excludeKey !== "vendor" && vendor) {
         sqlConditions += " AND b.厂商 = ?";
         sqlParams.push(vendor);
       }
       return { sqlConditions, sqlParams };
     };
 
-    // 1. 获取主列表查询条件（应用所有过滤器）
-    const mainQuery = buildFacetedConditions(null);
+    // 1. 获取主列表查询条件（应用所有过滤器，包括厂商）
+    const mainQuery = buildFacetedConditions(null, false);
     const sqlMain = `
       SELECT a.序号, a.名称, a.DN1, a.DN2, a.壁厚, a.材质, a.其他壁厚, b.厂商, b.单价 
       FROM tbl_ss_smls a 
@@ -132,29 +133,16 @@ export async function onRequest(context) {
 
     // 2. 为各个下拉菜单分别执行“排除自身条件”后的独特值查询，完成层层联动过滤
     const runDistinctQuery = async (columnName, excludeKey, orderSql = "") => {
-      const condition = buildFacetedConditions(excludeKey);
-      const needsJoin = columnName.startsWith("b.") || 
-                        (excludeKey !== "vendor" && vendor);
+      // 下拉级联仅在产品规格表(a)单表上联动过滤，厂商不参与级联，传入 ignoreVendor = true
+      const condition = buildFacetedConditions(excludeKey, true);
       
-      let sql;
-      if (needsJoin) {
-        sql = `
-          SELECT DISTINCT ${columnName} 
-          FROM tbl_ss_smls a 
-          INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号 
-          ${condition.sqlConditions} 
-          AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
-          ${orderSql}
-        `;
-      } else {
-        sql = `
-          SELECT DISTINCT ${columnName} 
-          FROM tbl_ss_smls a 
-          ${condition.sqlConditions} 
-          AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
-          ${orderSql}
-        `;
-      }
+      const sql = `
+        SELECT DISTINCT ${columnName} 
+        FROM tbl_ss_smls a 
+        ${condition.sqlConditions} 
+        AND ${columnName} IS NOT NULL AND ${columnName} != '空' AND ${columnName} != '' 
+        ${orderSql}
+      `;
       
       const { results } = await env.DB.prepare(sql).bind(...condition.sqlParams).all();
       return results.map(row => String(row[columnName.replace("a.", "").replace("b.", "")]));
