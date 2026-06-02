@@ -1108,11 +1108,72 @@ export default function App() {
     )
   }
 
+  // D. 帮助文档/使用说明页面
+  const renderHelpView = () => {
+    return (
+      <div className="panel" style={{ padding: '2.5rem 3rem' }}>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.8rem' }}>
+          📖 系统使用说明
+        </h2>
+        
+        <div style={{ lineHeight: '1.7', color: 'var(--text-secondary)' }}>
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-primary)', marginTop: '1.5rem', marginBottom: '0.8rem', fontWeight: '600' }}>
+            一、价格匹配模块 (批量导入核价)
+          </h3>
+          <p style={{ marginBottom: '1rem' }}>
+            <strong>核心功能：</strong>通过上传 Excel/CSV 文件，系统自动将文件中的产品与数据库中的各厂商报价进行匹配，并计算出各家厂商的最终核价结果。
+          </p>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：准备文件</strong> - 请确保表格第一列是“物料号码”，第二列是“物料长描述”（即配件名称与规格等），第三列是“数量”。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 2：上传文件</strong> - 拖拽或点击上传框，选择 <code>.xlsx</code>、<code>.xls</code> 或 <code>.csv</code> 格式的文件。系统会自动解析前 5 行让你确认列名匹配是否正确。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 3：开始导入</strong> - 点击红色的“⚡️ 开始清空并导入”按钮。⚠️ <strong>注意：此操作会完全覆盖数据库中的临时计算表</strong>，导入前请确保数据无误。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 4：查看与导出</strong> - 数据处理完成后，下方表格将完整展示核价结果。你可以点击表格右上方的按钮将结果“复制到剪贴板”或“导出为 Excel”到本地。</li>
+          </ul>
+
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-primary)', marginTop: '2.5rem', marginBottom: '0.8rem', fontWeight: '600' }}>
+            二、单项查询模块 (实时报价检索)
+          </h3>
+          <p style={{ marginBottom: '1rem' }}>
+            <strong>核心功能：</strong>无需文件导入，直接在网页端挑选规格参数，实时查询各厂商对应配件的底层单价与规格明细。
+          </p>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>智能级联筛选：</strong>从下拉列表中依次选择“配件名称”、“DN1”、“DN2”、“材质”、“厂商”等。下拉框中的选项会随着你其他的选择<strong>自动过滤智能收缩</strong>，确保你最终选出的组合在数据库中一定有对应产品。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>互斥设计：</strong>“标准壁厚”与“其他壁厚”是互斥参数。当你填写任意一方的内容时，另一方将自动被禁用并锁定，防止条件冲突。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>执行查询：</strong>所有所需参数选择完毕后，请点击右上角的“🔍 开始查询报价”按钮。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>清除条件：</strong>点击“🧹 重置条件”可以一键清空所有输入框并重新开始新的查询。</li>
+          </ul>
+
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-primary)', marginTop: '2.5rem', marginBottom: '0.8rem', fontWeight: '600' }}>
+            三、其他注意事项
+          </h3>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>深色/浅色主题：</strong>点击左下角的用户图标即可快速在深色与浅色模式间切换，以适应不同的光线与阅读习惯。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>移动端完美适配：</strong>本系统已深度适配手机浏览器浏览。在手机端，您可以通过手指横向滑动表格来浏览超出屏幕宽度的完整数据列。</li>
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
   // ==========================================
   // 4. 左右分栏 Dashboard 骨架渲染
   // ==========================================
   return (
-    <div className="container">
+    <div className="container" style={{ position: 'relative' }}>
+      
+      {/* 极简全局数据库连接状态标识 (右上角) */}
+      <div style={{ position: 'absolute', top: '1rem', right: '1.5rem', zIndex: 10 }}>
+        {(activeTab === 'matching' ? dataSource : dataSourceQuery) === 'd1_database' ? (
+          <span className="db-badge db-badge-success" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', opacity: 0.75 }}>
+            🟢 数据库连接正常
+          </span>
+        ) : (
+          <span className="db-badge db-badge-warning" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', opacity: 0.75 }}>
+            🟡 模拟演示数据
+          </span>
+        )}
+      </div>
+
       {/* 统一页面居中顶部标题栏 */}
       <header className="page-header">
         {activeTab === 'matching' && (
@@ -1121,18 +1182,6 @@ export default function App() {
               <span className="header-icon">🏷️</span> 对焊管件价格匹配及查询系统
             </h1>
             <p className="subtitle">目前仅限镇海基地框架不锈钢有缝管件部分</p>
-            
-            <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'center' }}>
-              {dataSource === 'd1_database' ? (
-                <span className="db-badge db-badge-success">
-                  🟢 数据库联接正常 (test_sample)
-                </span>
-              ) : (
-                <span className="db-badge db-badge-warning">
-                  本地模拟环境（未绑定云端 D1 数据库）
-                </span>
-              )}
-            </div>
           </>
         )}
 
@@ -1141,19 +1190,7 @@ export default function App() {
             <h1>
               <span className="header-icon">📊</span> 管道配件联合核价查询系统
             </h1>
-            <p className="subtitle">通过联接 tbl_ss_smls 与 tbl_ss_smls_price，跨表精确筛选各厂商报价</p>
-            
-            <div style={{ marginTop: '1.2rem', display: 'flex', justifyContent: 'center' }}>
-              {dataSourceQuery === 'd1_database' ? (
-                <span className="db-badge db-badge-success">
-                  🟢 已联接 D1 数据库：tbl_ss_smls ➕ tbl_ss_smls_price
-                </span>
-              ) : (
-                <span className="db-badge db-badge-warning">
-                  🟡 模拟演示数据（请确认本地服务已连接 D1）
-                </span>
-              )}
-            </div>
+            {/* 依据要求，单项查询页面去除子标题 */}
           </>
         )}
 
@@ -1163,6 +1200,15 @@ export default function App() {
               <span className="header-icon">⚙️</span> 系统后台管理中心
             </h1>
             <p className="subtitle">配置系统系数参数、编辑报价框架字典、以及查询系统日志</p>
+          </>
+        )}
+        
+        {activeTab === 'help' && (
+          <>
+            <h1>
+              <span className="header-icon">📖</span> 帮助与使用指南
+            </h1>
+            <p className="subtitle">快速了解对焊管件系统的操作流程与使用技巧</p>
           </>
         )}
       </header>
@@ -1198,6 +1244,15 @@ export default function App() {
             >
               <span style={{ fontSize: '1.1rem' }}>⚙️</span>
               <span>后台管理</span>
+            </button>
+            
+            <button 
+              className={`sidebar-item ${activeTab === 'help' ? 'active' : ''}`}
+              onClick={() => handleTabChange('help')}
+              style={{ marginTop: '0.5rem', borderTop: '1px solid var(--card-border)', paddingTop: '1rem', borderRadius: '0', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>📖</span>
+              <span>使用说明</span>
             </button>
           </nav>
 
@@ -1253,16 +1308,17 @@ export default function App() {
               </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-              镇海基地不锈钢有缝管件 v2.6 (更新于: 2026-06-02 18:05)
+              镇海基地不锈钢有缝管件 v2.7 (使用说明更新 | 更新于: 2026-06-02 20:25)
             </span>
           </div>
         </aside>
 
-        {/* 右侧主视口内容 */}
+        {/* 右侧主内容区 */}
         <main className="main-content">
           {activeTab === 'matching' && renderMatchingView()}
           {activeTab === 'query' && renderQueryView()}
           {activeTab === 'admin' && renderAdminView()}
+          {activeTab === 'help' && renderHelpView()}
         </main>
       </div>
     </div>
