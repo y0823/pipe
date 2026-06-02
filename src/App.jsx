@@ -290,7 +290,7 @@ export default function App() {
         fetchDbData()
         setMatchingQueried(true)
         // 顺便让单项查询也刷新选项数据
-        fetchQueryProducts()
+        fetchCascadingOptions()
       } else {
         throw new Error(result.error || '上传导入失败')
       }
