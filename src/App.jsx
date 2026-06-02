@@ -1307,8 +1307,11 @@ export default function App() {
                 </button>
               </div>
             )}
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-              镇海基地不锈钢有缝管件 v2.7 (使用说明更新 | 更新于: 2026-06-02 20:25)
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', display: 'block', marginTop: '0.8rem', fontWeight: '600', letterSpacing: '0.05em' }}>
+              设计制作：老杨
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
+              版本：v2.7 (使用说明更新 | 更新于: 2026-06-02 20:25)
             </span>
           </div>
         </aside>
