@@ -1252,7 +1252,7 @@ export default function App() {
               </div>
             )}
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.4rem' }}>
-              镇海基地不锈钢有缝管件 v2.0
+              镇海基地不锈钢有缝管件 v2.1 (更新于: 2026-06-02 12:47)
             </span>
           </div>
         </aside>
