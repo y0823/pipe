@@ -136,16 +136,16 @@ export async function onRequestPost(context) {
 
     // --- 真实 D1 数据库操作流程 ---
     
-    // 0. 安全补齐 test_sample 的 user_id 字段
-    await env.DB.prepare("ALTER TABLE test_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
+    // 0. 安全补齐 tbl_sample 的 user_id 字段
+    await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
 
     // 1. 清空当前登录用户的数据记录
-    await env.DB.prepare("DELETE FROM test_sample WHERE user_id = ?").bind(userEmail).run();
+    await env.DB.prepare("DELETE FROM tbl_sample WHERE user_id = ?").bind(userEmail).run();
 
     // 2. 准备批量写入语句 (D1 batch APIs)
     const statements = [];
     const insertStmt = env.DB.prepare(
-      "INSERT INTO test_sample (物料号码, 物料长描述, 数量, user_id) VALUES (?, ?, ?, ?)"
+      "INSERT INTO tbl_sample (物料号码, 物料长描述, 数量, user_id) VALUES (?, ?, ?, ?)"
     );
 
     for (const item of validRows) {
@@ -189,7 +189,7 @@ export async function onRequestPost(context) {
 
           (
               SELECT B_sub.基础材质
-              FROM test_materialtype AS B_sub
+              FROM tbl_materialtype AS B_sub
               WHERE s.物料长描述 LIKE '%' || IFNULL(B_sub.材质, '') || '%'
               ORDER BY LENGTH(B_sub.材质) DESC
               LIMIT 1
@@ -197,7 +197,7 @@ export async function onRequestPost(context) {
         
           (
               SELECT B_sub.系数
-              FROM test_materialtype AS B_sub
+              FROM tbl_materialtype AS B_sub
               WHERE s.物料长描述 LIKE '%' || IFNULL(B_sub.材质, '') || '%'
               ORDER BY LENGTH(B_sub.材质) DESC
               LIMIT 1
@@ -207,7 +207,7 @@ export async function onRequestPost(context) {
               INSTR(s.物料长描述, '弯头'),
               (
                   SELECT BR.系数
-                  FROM test_R AS BR
+                  FROM tbl_R AS BR
                   WHERE s.物料长描述 LIKE '%' || BR.弯曲半径 || '%'
                   ORDER BY LENGTH(BR.弯曲半径) DESC
                   LIMIT 1
@@ -219,7 +219,7 @@ export async function onRequestPost(context) {
               INSTR(s.物料长描述, '弯头'),
               (
                   SELECT BA.系数
-                  FROM test_angle AS BA
+                  FROM tbl_angle AS BA
                   WHERE s.物料长描述 LIKE '%' || BA.角度 || '%'
                   ORDER BY LENGTH(BA.角度) DESC
                   LIMIT 1
@@ -230,7 +230,7 @@ export async function onRequestPost(context) {
           IFNULL(
               (
                   SELECT BO.系数
-                  FROM test_others AS BO
+                  FROM tbl_others AS BO
                   WHERE s.物料长描述 LIKE '%' || BO.特殊管件 || '%'
                   ORDER BY LENGTH(BO.特殊管件) DESC
                   LIMIT 1
@@ -241,7 +241,7 @@ export async function onRequestPost(context) {
           IFNULL(
               (
                   SELECT BZ.系数
-                  FROM test_zn AS BZ
+                  FROM tbl_zn AS BZ
                   WHERE s.物料长描述 LIKE '%' || BZ.镀锌 || '%'
                   ORDER BY LENGTH(BZ.镀锌) DESC
                   LIMIT 1
@@ -252,7 +252,7 @@ export async function onRequestPost(context) {
           IFNULL(
               (
                   SELECT BL.系数
-                  FROM test_lowtmp AS BL
+                  FROM tbl_lowtmp AS BL
                   WHERE s.物料长描述 LIKE '%' || BL.温度 || '%'
                   ORDER BY LENGTH(BL.温度) DESC
                   LIMIT 1
@@ -263,7 +263,7 @@ export async function onRequestPost(context) {
          IFNULL(
               (
                   SELECT BD.系数
-                  FROM test_DegreasingTreatment AS BD
+                  FROM tbl_DegreasingTreatment AS BD
                   WHERE s.物料长描述 LIKE '%' || BD.特征值 || '%'
                   ORDER BY LENGTH(BD.特征值) DESC
                   LIMIT 1
@@ -274,7 +274,7 @@ export async function onRequestPost(context) {
          IFNULL(
               (
                   SELECT BH.系数
-                  FROM test_hic AS BH
+                  FROM tbl_hic AS BH
                   WHERE s.物料长描述 LIKE '%' || BH.特征值 || '%'
                   ORDER BY LENGTH(BH.特征值) DESC
                   LIMIT 1
@@ -285,7 +285,7 @@ export async function onRequestPost(context) {
          IFNULL(
               (
                   SELECT BP.系数
-                  FROM test_paohuang AS BP
+                  FROM tbl_paohuang AS BP
                   WHERE s.物料长描述 LIKE '%' || BP.特征值 || '%'
                   ORDER BY LENGTH(BP.特征值) DESC
                   LIMIT 1
@@ -348,18 +348,18 @@ export async function onRequestPost(context) {
                           ) AS finalXText
                       FROM (
                           SELECT 
-                              test_sample_table.*,
-                              REPLACE(test_sample_table.物料长描述, '×DN', '厚度') AS customText,
-                              REPLACE(REPLACE(test_sample_table.物料长描述, '×DN', '厚度'), ' DN', 'DN') AS tempText
-                          FROM test_sample test_sample_table
-                          WHERE test_sample_table.user_id = ?
+                              tbl_sample_table.*,
+                              REPLACE(tbl_sample_table.物料长描述, '×DN', '厚度') AS customText,
+                              REPLACE(REPLACE(tbl_sample_table.物料长描述, '×DN', '厚度'), ' DN', 'DN') AS tempText
+                          FROM tbl_sample tbl_sample_table
+                          WHERE tbl_sample_table.user_id = ?
                       ) L1
                   ) L2
               ) L3
           ) L4
       ) s
       LEFT JOIN 
-          test_prod_name p 
+          tbl_prod_name p 
       ON 
           SUBSTR(s.物料号码, 1, 6) = p.代码;
     `;

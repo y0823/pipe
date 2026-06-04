@@ -56,8 +56,8 @@ export async function onRequestPost(context) {
       }), { headers: corsHeaders });
     }
 
-    // 2. 擦除 test_sample 表中该用户的所有导入样本
-    await env.DB.prepare("DELETE FROM test_sample WHERE user_id = ?").bind(email).run();
+    // 2. 擦除 tbl_sample 表中该用户的所有导入样本
+    await env.DB.prepare("DELETE FROM tbl_sample WHERE user_id = ?").bind(email).run();
 
     // 3. 彻底删除（DROP）该用户专属的临时核价结果计算表
     await env.DB.prepare(`DROP TABLE IF EXISTS ${userPriceTable}`).run();

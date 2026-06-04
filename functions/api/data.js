@@ -55,11 +55,11 @@ export async function onRequestGet(context) {
       const query = await env.DB.prepare(`SELECT * FROM ${userPriceTable} LIMIT 100`).all();
       results = query.results || [];
     } catch (dbErr) {
-      // 如果计算表还未生成，退回到 test_sample 中过滤查询当前用户的原始记录
+      // 如果计算表还未生成，退回到 tbl_sample 中过滤查询当前用户的原始记录
       try {
-        const query = await env.DB.prepare("SELECT * FROM test_sample WHERE user_id = ? LIMIT 100").bind(userEmail).all();
+        const query = await env.DB.prepare("SELECT * FROM tbl_sample WHERE user_id = ? LIMIT 100").bind(userEmail).all();
         results = query.results || [];
-        tableUsed = "test_sample";
+        tableUsed = "tbl_sample";
       } catch (sampleErr) {
         results = [];
         tableUsed = "none";

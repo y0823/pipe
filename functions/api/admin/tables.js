@@ -16,7 +16,7 @@ export async function onRequestGet(context) {
 
     // 查询所有表
     const { results: tablesData } = await env.DB.prepare(
-      "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'd1_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'final_price_table_%' AND name != 'test_sample'"
+      "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'd1_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'final_price_table_%' AND name != 'tbl_sample'"
     ).all();
 
     const tables = [];

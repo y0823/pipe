@@ -91,8 +91,8 @@ export async function onRequest(context) {
       // 1. 获取级联关系的组合去重字典 (剥离标准壁厚)
       const specsSql = `SELECT DISTINCT 名称, DN1, DN2, 材质, 其他壁厚 FROM tbl_ss_smls`;
       
-      // 2. 根据要求，名称列表从 test_prod_name 表单独获取，作为独立字典
-      const namesSql = `SELECT DISTINCT 物资名称 FROM test_prod_name WHERE 物资名称 IS NOT NULL`;
+      // 2. 根据要求，名称列表从 tbl_prod_name 表单独获取，作为独立字典
+      const namesSql = `SELECT DISTINCT 物资名称 FROM tbl_prod_name WHERE 物资名称 IS NOT NULL`;
       
       // 3. 厂商名单固化
       const staticVendors = ["东台有缝不锈", "久立有缝不锈", "实华有缝不锈", "恒通有缝不锈", "方泉有缝不锈", "沧海有缝不锈"];

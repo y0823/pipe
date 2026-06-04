@@ -393,7 +393,7 @@ export default function App() {
           const resData = await response.json()
           if (resData.success) {
             setAllSpecs(resData.allSpecs || [])
-            setNames(resData.allNames || []) // 名称从 test_prod_name 获取
+            setNames(resData.allNames || []) // 名称从 tbl_prod_name 获取
             setVendors(resData.allVendors || []) // 厂商固化
             if (resData.source) {
               setDataSourceQuery(resData.source)
@@ -699,7 +699,7 @@ export default function App() {
             <div>
               <div className="alert alert-warning" style={{ margin: '0 0 1.5rem 0' }}>
                 <div>
-                  <strong>⚠️ 注意：</strong> 开始导入后，系统将<strong>自动清空（清零）</strong>表 <code>test_sample</code> 中的所有现有记录，并被该文件（Excel 将在后台静默转换为 CSV 数据）所覆写。数据清空不可撤销！
+                  <strong>⚠️ 注意：</strong> 开始导入后，系统将<strong>自动清空（清零）</strong>表 <code>tbl_sample</code> 中的所有现有记录，并被该文件（Excel 将在后台静默转换为 CSV 数据）所覆写。数据清空不可撤销！
                 </div>
               </div>
 
@@ -1380,7 +1380,7 @@ export default function App() {
             <strong>核心功能：</strong>提供图形化的数据库维护界面，可以下载数据表的结构模板，以及通过追加或覆盖的方式在线批量更新后台基础配置表。
           </p>
           <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：获取模板</strong> - 在“操作目标表”下拉框中选择你要修改的配置表（如 <code>test_R</code> 等），点击右上角的“导出 Excel”即可获取最新的线上数据副本。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：获取模板</strong> - 在“操作目标表”下拉框中选择你要修改的配置表（如 <code>tbl_R</code> 等），点击右上角的“导出 Excel”即可获取最新的线上数据副本。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 2：本地修改</strong> - 直接在下载的 Excel 中修改、添加或删除对应数据。<strong>请不要随意更改表头的列名</strong>。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 3：选择导入模式</strong> - <strong>覆盖模式</strong>会首先清空线上表内的旧数据再插入新文件的数据；<strong>追加模式</strong>则会在保留原有数据的基础上插入新数据（遇到具有唯一约束的重复数据时，系统会自动平滑更新替换）。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 4：执行导入</strong> - 上传改好的 Excel 文件并点击导入，系统会自动对数据格式进行严密的校验，通过后即可直达底层数据库。</li>
@@ -1554,10 +1554,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.1
+              版本：v3.2
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (新增后台数据管理与导出导入、优化匹配算法 | 更新于: 2026-06-04 10:33)
+              (重构系统表命名规范 | 更新于: 2026-06-04 10:41)
             </span>
           </div>
         </aside>
