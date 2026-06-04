@@ -191,6 +191,7 @@ export async function onRequestPost(context) {
               SELECT B_sub.基础材质
               FROM test_materialtype AS B_sub
               WHERE s.物料长描述 LIKE '%' || IFNULL(B_sub.材质, '') || '%'
+              ORDER BY LENGTH(B_sub.材质) DESC
               LIMIT 1
           ) AS 材质,
         
@@ -198,6 +199,7 @@ export async function onRequestPost(context) {
               SELECT B_sub.系数
               FROM test_materialtype AS B_sub
               WHERE s.物料长描述 LIKE '%' || IFNULL(B_sub.材质, '') || '%'
+              ORDER BY LENGTH(B_sub.材质) DESC
               LIMIT 1
           ) AS 材质系数,
 
@@ -207,6 +209,7 @@ export async function onRequestPost(context) {
                   SELECT BR.系数
                   FROM test_R AS BR
                   WHERE s.物料长描述 LIKE '%' || BR.弯曲半径 || '%'
+                  ORDER BY LENGTH(BR.弯曲半径) DESC
                   LIMIT 1
               ),
               1
@@ -215,9 +218,10 @@ export async function onRequestPost(context) {
           IIF(
               INSTR(s.物料长描述, '弯头'),
               (
-                  SELECT JD.系数
-                  FROM test_angle AS JD
-                  WHERE s.物料长描述 LIKE '%' || JD.角度 || '%'
+                  SELECT BA.系数
+                  FROM test_angle AS BA
+                  WHERE s.物料长描述 LIKE '%' || BA.角度 || '%'
+                  ORDER BY LENGTH(BA.角度) DESC
                   LIMIT 1
               ),
               1
@@ -225,9 +229,10 @@ export async function onRequestPost(context) {
 
           IFNULL(
               (
-                  SELECT TS.系数
-                  FROM test_others AS TS
-                  WHERE s.物料长描述 LIKE '%' || TS.特殊管件 || '%'
+                  SELECT BO.系数
+                  FROM test_others AS BO
+                  WHERE s.物料长描述 LIKE '%' || BO.特殊管件 || '%'
+                  ORDER BY LENGTH(BO.特殊管件) DESC
                   LIMIT 1
               ),
               1
@@ -235,9 +240,10 @@ export async function onRequestPost(context) {
 
           IFNULL(
               (
-                  SELECT DX.系数
-                  FROM test_zn AS DX
-                  WHERE s.物料长描述 LIKE '%' || DX.镀锌 || '%'
+                  SELECT BZ.系数
+                  FROM test_zn AS BZ
+                  WHERE s.物料长描述 LIKE '%' || BZ.镀锌 || '%'
+                  ORDER BY LENGTH(BZ.镀锌) DESC
                   LIMIT 1
               ),
               1
@@ -245,9 +251,10 @@ export async function onRequestPost(context) {
 
           IFNULL(
               (
-                  SELECT DW.系数
-                  FROM test_lowtmp AS DW
-                  WHERE s.物料长描述 LIKE '%' || DW.温度 || '%'
+                  SELECT BL.系数
+                  FROM test_lowtmp AS BL
+                  WHERE s.物料长描述 LIKE '%' || BL.温度 || '%'
+                  ORDER BY LENGTH(BL.温度) DESC
                   LIMIT 1
               ),
               1
@@ -255,9 +262,10 @@ export async function onRequestPost(context) {
 
          IFNULL(
               (
-                  SELECT TZ.系数
-                  FROM test_DegreasingTreatment AS TZ
-                  WHERE s.物料长描述 LIKE '%' || TZ.特征值 || '%'
+                  SELECT BD.系数
+                  FROM test_DegreasingTreatment AS BD
+                  WHERE s.物料长描述 LIKE '%' || BD.特征值 || '%'
+                  ORDER BY LENGTH(BD.特征值) DESC
                   LIMIT 1
               ),
               1
@@ -265,9 +273,10 @@ export async function onRequestPost(context) {
 
          IFNULL(
               (
-                  SELECT KLQ.系数
-                  FROM test_hic AS KLQ
-                  WHERE s.物料长描述 LIKE '%' || KLQ.特征值 || '%'
+                  SELECT BH.系数
+                  FROM test_hic AS BH
+                  WHERE s.物料长描述 LIKE '%' || BH.特征值 || '%'
+                  ORDER BY LENGTH(BH.特征值) DESC
                   LIMIT 1
               ),
               1
@@ -275,9 +284,10 @@ export async function onRequestPost(context) {
 
          IFNULL(
               (
-                  SELECT PG.系数
-                  FROM test_paohuang AS PG
-                  WHERE s.物料长描述 LIKE '%' || PG.特征值 || '%'
+                  SELECT BP.系数
+                  FROM test_paohuang AS BP
+                  WHERE s.物料长描述 LIKE '%' || BP.特征值 || '%'
+                  ORDER BY LENGTH(BP.特征值) DESC
                   LIMIT 1
               ),
               1
