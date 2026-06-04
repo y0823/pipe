@@ -34,7 +34,9 @@ const TABLE_NAME_MAP = {
   'tbl_DegreasingTreatment': '脱脂管件系数表',
   'tbl_hic': '抗硫氢管件系数表',
   'tbl_paohuang': '抛光管件系数表',
-  'tbl_vendors': '厂商配置表'
+  'tbl_vendors': '厂商配置表',
+  'product_attributes': '商品属性表',
+  'product_prices': '商品价格表'
 };
 
 export default function App() {
@@ -1573,10 +1575,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.3
+              版本：v3.4
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (后台管理支持中文表名显示 | 更新于: 2026-06-04 10:48)
+              (新增商品属性表与价格表 | 更新于: 2026-06-04 10:57)
             </span>
           </div>
         </aside>

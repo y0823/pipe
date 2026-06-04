@@ -89,7 +89,7 @@ export async function onRequest(context) {
 
     if (fetchAllSpecs) {
       // 1. 获取级联关系的组合去重字典 (剥离标准壁厚)
-      const specsSql = `SELECT DISTINCT 名称, DN1, DN2, 材质, 其他壁厚 FROM tbl_ss_smls`;
+      const specsSql = `SELECT DISTINCT 名称, DN1, DN2, 材质, 其他壁厚 FROM product_attributes`;
       
       // 2. 根据要求，名称列表从 tbl_prod_name 表单独获取，作为独立字典
       const namesSql = `SELECT DISTINCT 物资名称 FROM tbl_prod_name WHERE 物资名称 IS NOT NULL`;
@@ -152,8 +152,8 @@ export async function onRequest(context) {
     const mainQuery = buildFacetedConditions(null, false);
     const sqlMain = `
       SELECT a.序号, a.名称, a.DN1, a.DN2, a.壁厚, a.材质, a.其他壁厚, b.厂商, b.单价 
-      FROM tbl_ss_smls a 
-      INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号
+      FROM product_attributes a 
+      INNER JOIN product_prices b ON a.序号 = b.序号
       ${mainQuery.sqlConditions}
       ORDER BY a.序号 ASC, b.单价 ASC LIMIT 200
     `;

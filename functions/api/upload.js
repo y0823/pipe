@@ -377,8 +377,8 @@ export async function onRequestPost(context) {
       UPDATE ${userPriceTable}
       SET 其他壁厚单价 = (
           SELECT b.单价
-          FROM tbl_ss_smls a
-          INNER JOIN tbl_ss_smls_price b ON a.序号 = b.序号
+          FROM product_attributes a
+          INNER JOIN product_prices b ON a.序号 = b.序号
           WHERE
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
@@ -393,7 +393,7 @@ export async function onRequestPost(context) {
       UPDATE ${userPriceTable}
       SET 匹配框架表壁厚 = (
           SELECT a.壁厚
-          FROM tbl_ss_smls a
+          FROM product_attributes a
           WHERE
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
@@ -409,8 +409,8 @@ export async function onRequestPost(context) {
       UPDATE ${userPriceTable}
       SET 数字壁厚单价 = (
           SELECT bp.单价
-          FROM tbl_ss_smls a
-          INNER JOIN tbl_ss_smls_price bp ON a.序号 = bp.序号
+          FROM product_attributes a
+          INNER JOIN product_prices bp ON a.序号 = bp.序号
           WHERE
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
