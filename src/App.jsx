@@ -1587,10 +1587,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.4
+              版本：v3.5
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (新增商品属性表与价格表 | 更新于: 2026-06-04 10:57)
+              (新增数据库查询诊断与索引分析 | 更新于: 2026-06-05 07:38)
             </span>
           </div>
         </aside>
