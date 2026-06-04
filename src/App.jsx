@@ -566,7 +566,7 @@ export default function App() {
     if (!adminExportTable) return
     try {
       setAdminMsg({ type: 'info', text: `正在拉取 ${adminExportTable} 的数据 ...` })
-      const res = await fetch(`/api/admin/export?table=${adminExportTable}`)
+      const res = await fetch(`/api/admin/export?table=${adminExportTable}&t=${Date.now()}`)
       const data = await res.json()
       if (data.success) {
         if (data.data.length === 0) {
