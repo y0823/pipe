@@ -136,12 +136,13 @@ export async function onRequest(context) {
       // 2. 根据要求，名称列表从 tbl_prod_name 表单独获取，作为独立字典
       const namesSql = `SELECT DISTINCT 物资名称 FROM tbl_prod_name WHERE 物资名称 IS NOT NULL`;
       
-      // 3. 厂商名单固化
-      const staticVendors = ["东台有缝不锈", "久立有缝不锈", "实华有缝不锈", "恒通有缝不锈", "方泉有缝不锈", "沧海有缝不锈"];
+      // 3. 厂商名单从 tbl_vendors 表获取
+      const vendorsSql = `SELECT DISTINCT 厂商 FROM tbl_vendors WHERE 厂商 IS NOT NULL`;
       
-      const [specsResults, namesResults] = await Promise.all([
+      const [specsResults, namesResults, vendorsResults] = await Promise.all([
         env.DB.prepare(specsSql).all(),
-        env.DB.prepare(namesSql).all()
+        env.DB.prepare(namesSql).all(),
+        env.DB.prepare(vendorsSql).all()
       ]);
 
       return new Response(JSON.stringify({
@@ -149,7 +150,7 @@ export async function onRequest(context) {
         source: "d1_database",
         allSpecs: specsResults.results,
         allNames: namesResults.results.map(row => String(row.物资名称)),
-        allVendors: staticVendors
+        allVendors: vendorsResults.results.map(row => String(row.厂商))
       }), { headers: corsHeaders });
     }
 
