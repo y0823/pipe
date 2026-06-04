@@ -10,6 +10,48 @@ const MOCK_PIPEFITTINGS_JOINED = [
   { "序号": 1003, "名称": "有缝同心大小头", "DN1": 200, "DN2": "150", "壁厚": null, "其他壁厚": "SCH10S", "材质": "316", "厂商": "恒通有缝不锈", "单价": 480.00 }
 ];
 
+// 辅助函数：解析 SQL 执行计划以检测索引和全表扫描
+function parseQueryPlan(planRows) {
+  const indexes = [];
+  const scans = [];
+  let usesPrimaryKey = false;
+
+  for (const row of planRows) {
+    const detail = row.detail || row.Detail || "";
+    
+    // 匹配 "USING INDEX idx_name" 或 "USING COVERING INDEX idx_name"
+    const indexMatch = detail.match(/USING (?:COVERING )?INDEX (\w+)/);
+    if (indexMatch) {
+      indexes.push(indexMatch[1]);
+    }
+    
+    if (detail.includes("USING INTEGER PRIMARY KEY")) {
+      usesPrimaryKey = true;
+    }
+    
+    // 匹配 "SCAN TABLE table_name"
+    const scanMatch = detail.match(/SCAN TABLE (\w+)/);
+    if (scanMatch) {
+      scans.push(scanMatch[1]);
+    }
+  }
+
+  const uniqueIndexes = [...new Set(indexes)];
+  if (usesPrimaryKey) {
+    uniqueIndexes.push("PRIMARY KEY (rowid)");
+  }
+  const uniqueScans = [...new Set(scans)];
+
+  return {
+    indexes: uniqueIndexes,
+    scans: uniqueScans,
+    hasIndex: uniqueIndexes.length > 0,
+    summary: uniqueIndexes.length > 0 
+      ? `触发了索引: ${uniqueIndexes.join(", ")}` 
+      : "未触发索引（执行了全表扫描）"
+  };
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   
@@ -160,15 +202,40 @@ export async function onRequest(context) {
 
     // 仅运行主数据查询，不再执行昂贵的 DISTINCT 级联查询
     const mainResultsPromise = skipData 
-      ? Promise.resolve({ results: [] }) 
+      ? Promise.resolve({ results: [], meta: { rows_read: 0, rows_written: 0, duration: 0 } }) 
       : env.DB.prepare(sqlMain).bind(...mainQuery.sqlParams).all();
 
     const mainResults = await mainResultsPromise;
 
+    // 运行 EXPLAIN QUERY PLAN 来获取索引和执行计划详情
+    let diagnostics = null;
+    if (!skipData) {
+      try {
+        const explainSql = `EXPLAIN QUERY PLAN ${sqlMain}`;
+        const explainResult = await env.DB.prepare(explainSql).bind(...mainQuery.sqlParams).all();
+        const plan = explainResult.results || [];
+        const planInfo = parseQueryPlan(plan);
+        
+        diagnostics = {
+          rows_read: mainResults.meta?.rows_read || 0,
+          rows_written: mainResults.meta?.rows_written || 0,
+          duration_ms: mainResults.meta?.duration || 0,
+          indexes_triggered: planInfo.indexes,
+          scans: planInfo.scans,
+          has_index: planInfo.hasIndex,
+          summary: planInfo.summary,
+          query_plan: plan.map(row => row.detail || "")
+        };
+      } catch (err) {
+        console.error("Failed to run EXPLAIN QUERY PLAN:", err);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       source: "d1_database",
-      data: mainResults.results
+      data: mainResults.results,
+      diagnostics
     }), { headers: corsHeaders });
 
   } catch (error) {

@@ -101,6 +101,10 @@ export default function App() {
   const [copied, setCopied] = useState(false)
   const [matchingQueried, setMatchingQueried] = useState(false)
 
+  // 数据库诊断弹窗状态
+  const [diagnosticsData, setDiagnosticsData] = useState(null)
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
+
   // 拖拽调整列宽状态与函数
   const [csvColWidths, setCsvColWidths] = useState([200, 700, 150])
   const [dbColWidths, setDbColWidths] = useState([200, 700, 150])
@@ -306,6 +310,10 @@ export default function App() {
         setCsvPreview([])
         fetchDbData()
         setMatchingQueried(true)
+        if (result.diagnostics) {
+          setDiagnosticsData(result.diagnostics)
+          setShowDiagnostics(true)
+        }
       } else {
         throw new Error(result.error || '上传导入失败')
       }
@@ -490,6 +498,10 @@ export default function App() {
         setProducts(resData.data || [])
         setHasActiveSearch(true)
         setDataSourceQuery(resData.source)
+        if (resData.diagnostics) {
+          setDiagnosticsData(resData.diagnostics)
+          setShowDiagnostics(true)
+        }
       } else {
         throw new Error(resData.error || '获取报价数据失败')
       }
@@ -1591,6 +1603,91 @@ export default function App() {
           {activeTab === 'help' && renderHelpView()}
         </main>
       </div>
+
+      {showDiagnostics && diagnosticsData && (
+        <div className="diag-overlay" onClick={() => setShowDiagnostics(false)}>
+          <div className="diag-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="diag-header">
+              <h3 className="diag-title">
+                🔍 数据库查询诊断 (D1 Diagnostics)
+              </h3>
+              <button className="diag-close-btn" onClick={() => setShowDiagnostics(false)}>
+                &times;
+              </button>
+            </div>
+            <div className="diag-body">
+              <div className="diag-grid">
+                <div className="diag-stat-card">
+                  <span className="diag-stat-label">读取行数</span>
+                  <span className={`diag-stat-val ${diagnosticsData.rows_read > 500 ? 'warning' : 'success'}`}>
+                    {diagnosticsData.rows_read.toLocaleString()}
+                  </span>
+                </div>
+                <div className="diag-stat-card">
+                  <span className="diag-stat-label">写入行数</span>
+                  <span className="diag-stat-val">
+                    {diagnosticsData.rows_written.toLocaleString()}
+                  </span>
+                </div>
+                <div className="diag-stat-card">
+                  <span className="diag-stat-label">数据库耗时</span>
+                  <span className="diag-stat-val warning">
+                    {diagnosticsData.duration_ms} ms
+                  </span>
+                </div>
+              </div>
+
+              <div className="diag-section">
+                <span className="diag-section-title">⚡ 索引触发状态</span>
+                <div className="diag-badge-list">
+                  {diagnosticsData.indexes_triggered && diagnosticsData.indexes_triggered.length > 0 ? (
+                    diagnosticsData.indexes_triggered.map((idx, i) => (
+                      <span key={i} className="diag-badge index">
+                        🔹 {idx}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="diag-badge empty">
+                      ⚠️ 未触发任何索引 (全表扫描)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {diagnosticsData.scans && diagnosticsData.scans.length > 0 && (
+                <div className="diag-section">
+                  <span className="diag-section-title">🚨 扫描的表 (全表扫描)</span>
+                  <div className="diag-badge-list">
+                    {diagnosticsData.scans.map((tbl, i) => (
+                      <span key={i} className="diag-badge scan">
+                        ⚠️ SCAN TABLE {tbl}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {diagnosticsData.query_plan && diagnosticsData.query_plan.length > 0 && (
+                <div className="diag-section">
+                  <span className="diag-section-title">📋 详细查询执行计划 (SQLite Explain Plan)</span>
+                  <div className="diag-plan-details">
+                    {diagnosticsData.query_plan.map((line, i) => (
+                      <div key={i} className="diag-plan-line">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="diag-footer">
+              <button className="btn-diag-confirm" onClick={() => setShowDiagnostics(false)}>
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

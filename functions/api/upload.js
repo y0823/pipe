@@ -50,6 +50,48 @@ function parseCSV(csvText) {
   return lines;
 }
 
+// 辅助函数：解析 SQL 执行计划以检测索引和全表扫描
+function parseQueryPlan(planRows) {
+  const indexes = [];
+  const scans = [];
+  let usesPrimaryKey = false;
+
+  for (const row of planRows) {
+    const detail = row.detail || row.Detail || "";
+    
+    // 匹配 "USING INDEX idx_name" 或 "USING COVERING INDEX idx_name"
+    const indexMatch = detail.match(/USING (?:COVERING )?INDEX (\w+)/);
+    if (indexMatch) {
+      indexes.push(indexMatch[1]);
+    }
+    
+    if (detail.includes("USING INTEGER PRIMARY KEY")) {
+      usesPrimaryKey = true;
+    }
+    
+    // 匹配 "SCAN TABLE table_name"
+    const scanMatch = detail.match(/SCAN TABLE (\w+)/);
+    if (scanMatch) {
+      scans.push(scanMatch[1]);
+    }
+  }
+
+  const uniqueIndexes = [...new Set(indexes)];
+  if (usesPrimaryKey) {
+    uniqueIndexes.push("PRIMARY KEY (rowid)");
+  }
+  const uniqueScans = [...new Set(scans)];
+
+  return {
+    indexes: uniqueIndexes,
+    scans: uniqueScans,
+    hasIndex: uniqueIndexes.length > 0,
+    summary: uniqueIndexes.length > 0 
+      ? `触发了索引: ${uniqueIndexes.join(", ")}` 
+      : "未触发索引（执行了全表扫描）"
+  };
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   
@@ -130,17 +172,41 @@ export async function onRequestPost(context) {
         success: true,
         source: "mock_data",
         count: validRows.length,
-        message: `模拟导入成功！成功处理 ${validRows.length} 条记录（未绑定真实数据库）。`
+        message: `模拟导入成功！成功处理 ${validRows.length} 条记录（未绑定真实数据库）。`,
+        diagnostics: {
+          rows_read: 0,
+          rows_written: 0,
+          duration_ms: 0,
+          indexes_triggered: [],
+          scans: [],
+          has_index: false,
+          summary: "未触发索引（本地模拟数据）",
+          query_plan: ["本地模拟数据，未触发真实 D1 数据库"]
+        }
       }), { headers: corsHeaders });
     }
 
     // --- 真实 D1 数据库操作流程 ---
+    let totalRowsRead = 0;
+    let totalRowsWritten = 0;
+    let totalDuration = 0;
+
+    const trackMetrics = (result) => {
+      if (result && result.meta) {
+        totalRowsRead += result.meta.rows_read || 0;
+        totalRowsWritten += result.meta.rows_written || 0;
+        totalDuration += result.meta.duration || 0;
+      }
+      return result;
+    };
     
     // 0. 安全补齐 tbl_sample 的 user_id 字段
-    await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
+    const resAlterSample = await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
+    if (resAlterSample) trackMetrics(resAlterSample);
 
     // 1. 清空当前登录用户的数据记录
-    await env.DB.prepare("DELETE FROM tbl_sample WHERE user_id = ?").bind(userEmail).run();
+    const resDelete = await env.DB.prepare("DELETE FROM tbl_sample WHERE user_id = ?").bind(userEmail).run();
+    trackMetrics(resDelete);
 
     // 2. 准备批量写入语句 (D1 batch APIs)
     const statements = [];
@@ -155,10 +221,16 @@ export async function onRequestPost(context) {
     }
 
     // 3. 在单个事务中执行所有插入，极大缩短执行时间并保证数据完整性
-    await env.DB.batch(statements);
+    const batchRes = await env.DB.batch(statements);
+    if (Array.isArray(batchRes)) {
+      for (const r of batchRes) {
+        trackMetrics(r);
+      }
+    }
 
     // 4. 数据导入完成后，直接在 D1 SQLite 中执行多表关联与聚合定价计算，更新专属用户的 final_price_table_xxx
-    await env.DB.prepare(`DROP TABLE IF EXISTS ${userPriceTable}`).run();
+    const resDrop = await env.DB.prepare(`DROP TABLE IF EXISTS ${userPriceTable}`).run();
+    trackMetrics(resDrop);
 
     const createTableSql = `
       CREATE TABLE ${userPriceTable} AS
@@ -338,9 +410,9 @@ export async function onRequestPost(context) {
                       SELECT 
                           L1.*,
                           IIF(
-                              INSTR(customText, '×'),
+                              COALESCE(INSTR(customText, '×'), 0),
                               IIF(
-                                  INSTR(SUBSTR(customText, INSTR(customText, '×') + 1), '×'),
+                                  COALESCE(INSTR(SUBSTR(customText, INSTR(customText, '×') + 1), '×'), 0),
                                   SUBSTR(SUBSTR(customText, INSTR(customText, '×') + 1), INSTR(SUBSTR(customText, INSTR(customText, '×') + 1), '×') + 1),
                                   SUBSTR(customText, INSTR(customText, '×') + 1)
                               ),
@@ -363,17 +435,37 @@ export async function onRequestPost(context) {
       ON 
           SUBSTR(s.物料号码, 1, 6) = p.代码;
     `;
-    await env.DB.prepare(createTableSql).bind(userEmail).run();
+
+    // 运行 EXPLAIN QUERY PLAN 对合并计算的主要 SQL 进行诊断
+    const allPlans = [];
+    const runExplain = async (sql, params = []) => {
+      try {
+        const explainResult = await env.DB.prepare(`EXPLAIN QUERY PLAN ${sql}`).bind(...params).all();
+        if (explainResult && explainResult.results) {
+          allPlans.push(...explainResult.results);
+        }
+      } catch (err) {
+        console.error("EXPLAIN failed:", err);
+      }
+    };
+
+    // 1) 诊断 CREATE TABLE 部分
+    const selectSqlOnly = createTableSql.replace(`CREATE TABLE ${userPriceTable} AS`, "");
+    await runExplain(selectSqlOnly, [userEmail]);
+
+    // 执行创建临时价格表
+    const resCreate = await env.DB.prepare(createTableSql).bind(userEmail).run();
+    trackMetrics(resCreate);
 
     // 5. 在新生成的 final_price_table_xxx 表上添加 5 个后续定价运算字段
-    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 其他壁厚单价 REAL`).run();
-    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 匹配框架表壁厚 REAL`).run();
-    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 数字壁厚单价 REAL`).run();
-    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 换算后价格 REAL`).run();
-    await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 最终核价 REAL`).run();
+    trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 其他壁厚单价 REAL`).run());
+    trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 匹配框架表壁厚 REAL`).run());
+    trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 数字壁厚单价 REAL`).run());
+    trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 换算后价格 REAL`).run());
+    trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 最终核价 REAL`).run());
 
     // 6. 执行后续的 UPDATE 计算逻辑 (多表数据关联与数学换算，已剔除 COALESCE 函数以启用数据库 B-Tree 索引)
-    await env.DB.prepare(`
+    const update1 = `
       UPDATE ${userPriceTable}
       SET 其他壁厚单价 = (
           SELECT b.单价
@@ -387,9 +479,9 @@ export async function onRequestPost(context) {
               a.其他壁厚 IS ${userPriceTable}.其他壁厚
           LIMIT 1
       )
-    `).run();
+    `;
 
-    await env.DB.prepare(`
+    const update2 = `
       UPDATE ${userPriceTable}
       SET 匹配框架表壁厚 = (
           SELECT a.壁厚
@@ -403,9 +495,9 @@ export async function onRequestPost(context) {
           ORDER BY a.壁厚 ASC
           LIMIT 1
       )
-    `).run();
+    `;
 
-    await env.DB.prepare(`
+    const update3 = `
       UPDATE ${userPriceTable}
       SET 数字壁厚单价 = (
           SELECT bp.单价
@@ -420,18 +512,18 @@ export async function onRequestPost(context) {
           ORDER BY a.壁厚 ASC
           LIMIT 1
       )
-    `).run();
+    `;
 
-    await env.DB.prepare(`
+    const update4 = `
       UPDATE ${userPriceTable}
       SET 换算后价格 = ROUND((数字壁厚单价 / 匹配框架表壁厚) * 数字壁厚, 2)
       WHERE
           数字壁厚 IS NOT NULL
           AND 匹配框架表壁厚 IS NOT NULL
           AND 匹配框架表壁厚 != 0
-    `).run();
+    `;
 
-    await env.DB.prepare(`
+    const update5 = `
       UPDATE ${userPriceTable}
       SET 最终核价 = ROUND(
           CASE 
@@ -450,13 +542,38 @@ export async function onRequestPost(context) {
           * 抛光, 
           2
       )
-    `).run();
+    `;
+
+    // 诊断关联更新 SQL
+    await runExplain(update1);
+    await runExplain(update2);
+    await runExplain(update3);
+
+    // 顺序执行后续的所有 UPDATE
+    trackMetrics(await env.DB.prepare(update1).run());
+    trackMetrics(await env.DB.prepare(update2).run());
+    trackMetrics(await env.DB.prepare(update3).run());
+    trackMetrics(await env.DB.prepare(update4).run());
+    trackMetrics(await env.DB.prepare(update5).run());
+
+    // 解析执行计划
+    const planInfo = parseQueryPlan(allPlans);
 
     return new Response(JSON.stringify({
       success: true,
       source: "d1_database",
       count: validRows.length,
-      message: `成功清空您的历史样本，完成批量导入，并成功执行了专属核价流程 (${userPriceTable})！`
+      message: `成功清空您的历史样本，完成批量导入，并成功执行了专属核价流程 (${userPriceTable})！`,
+      diagnostics: {
+        rows_read: totalRowsRead,
+        rows_written: totalRowsWritten,
+        duration_ms: totalDuration,
+        indexes_triggered: planInfo.indexes,
+        scans: planInfo.scans,
+        has_index: planInfo.hasIndex,
+        summary: planInfo.summary,
+        query_plan: allPlans.map(row => row.detail || "")
+      }
     }), { headers: corsHeaders });
 
   } catch (error) {

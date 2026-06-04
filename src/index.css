@@ -1037,3 +1037,250 @@ h1 {
     justify-content: center;
   }
 }
+
+/* 数据库查询诊断弹窗 (Glassmorphism Modal) */
+.diag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: diagFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.diag-modal {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  width: 92%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: diagSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.diag-header {
+  padding: 1.5rem 1.8rem 1rem 1.8rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diag-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.diag-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  transition: all 0.2s;
+}
+
+.diag-close-btn:hover {
+  background: var(--btn-secondary-hover-bg);
+  color: var(--text-primary);
+}
+
+.diag-body {
+  padding: 1.8rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.diag-stat-card {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 1rem 0.8rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: transform 0.2s;
+}
+
+.diag-stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.diag-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.diag-stat-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.diag-stat-val.success {
+  color: var(--accent-success);
+}
+
+.diag-stat-val.warning {
+  color: var(--accent-warning);
+}
+
+.diag-stat-val.error {
+  color: var(--accent-error);
+}
+
+.diag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.diag-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.diag-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.diag-badge {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: monospace;
+}
+
+.diag-badge.index {
+  background: hsla(145, 80%, 45%, 0.1);
+  color: var(--accent-success);
+  border: 1px solid hsla(145, 80%, 45%, 0.2);
+}
+
+.diag-badge.scan {
+  background: hsla(350, 80%, 60%, 0.1);
+  color: var(--accent-error);
+  border: 1px solid hsla(350, 80%, 60%, 0.2);
+}
+
+.diag-badge.empty {
+  background: var(--input-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--input-border);
+  font-family: var(--font-sans);
+}
+
+.diag-plan-details {
+  background: #0d1117;
+  color: #c9d1d9;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: 220px;
+  border: 1px solid #21262d;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.diag-plan-line {
+  white-space: pre;
+  border-bottom: 1px solid #21262d;
+  padding: 0.3rem 0;
+}
+
+.diag-plan-line:last-child {
+  border-bottom: none;
+}
+
+.diag-footer {
+  padding: 1rem 1.8rem 1.5rem 1.8rem;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-diag-confirm {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, hsl(260, 85%, 55%) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 2rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px hsla(260, 85%, 65%, 0.3);
+}
+
+.btn-diag-confirm:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px hsla(260, 85%, 65%, 0.45);
+}
+
+.btn-diag-confirm:active {
+  transform: translateY(0);
+}
+
+@keyframes diagFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes diagSlideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
