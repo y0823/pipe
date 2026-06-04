@@ -22,6 +22,21 @@ function parseCSVLine(text) {
   return r;
 }
 
+const TABLE_NAME_MAP = {
+  'tbl_prod_name': '产品名称配置表',
+  'tbl_materialtype': '材质匹配系数表',
+  'tbl_special': '特殊管件系数表',
+  'tbl_R': '弯曲半径系数表',
+  'tbl_angle': '角度系数表',
+  'tbl_others': '其他管件系数表',
+  'tbl_lowtmp': '低温管件系数表',
+  'tbl_zn': '镀锌管件系数表',
+  'tbl_DegreasingTreatment': '脱脂管件系数表',
+  'tbl_hic': '抗硫氢管件系数表',
+  'tbl_paohuang': '抛光管件系数表',
+  'tbl_vendors': '厂商配置表'
+};
+
 export default function App() {
   // ==========================================
   // 0. 全局与布局状态 (Global & Layout State)
