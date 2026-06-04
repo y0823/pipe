@@ -56,7 +56,7 @@ export async function onRequestPost(context) {
     }
 
     const placeholders = columns.map(() => '?').join(', ');
-    const insertStmt = env.DB.prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`);
+    const insertStmt = env.DB.prepare(`INSERT OR REPLACE INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`);
 
     for (const row of data) {
       const values = columns.map(col => {
