@@ -530,6 +530,139 @@ export default function App() {
   }
 
   // ==========================================
+  // 3. 后台管理模块状态与逻辑 (Admin Tab)
+  // ==========================================
+  const [adminTables, setAdminTables] = useState([])
+  const [adminExportTable, setAdminExportTable] = useState('')
+  const [adminImportTable, setAdminImportTable] = useState('')
+  const [adminImportMode, setAdminImportMode] = useState('overwrite')
+  const [adminImportFile, setAdminImportFile] = useState(null)
+  const [adminParsedData, setAdminParsedData] = useState([])
+  const [adminLoading, setAdminLoading] = useState(false)
+  const [adminMsg, setAdminMsg] = useState({ type: '', text: '' })
+
+  useEffect(() => {
+    if (activeTab === 'admin' && adminTables.length === 0) {
+      const fetchTables = async () => {
+        try {
+          const res = await fetch('/api/admin/tables')
+          const data = await res.json()
+          if (data.success) {
+            setAdminTables(data.data)
+            if (data.data.length > 0) {
+              setAdminExportTable(data.data[0].name)
+              setAdminImportTable(data.data[0].name)
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch admin tables:", err)
+        }
+      }
+      fetchTables()
+    }
+  }, [activeTab])
+
+  const handleAdminExport = async () => {
+    if (!adminExportTable) return
+    try {
+      setAdminMsg({ type: 'info', text: `正在拉取 ${adminExportTable} 的数据 ...` })
+      const res = await fetch(`/api/admin/export?table=${adminExportTable}`)
+      const data = await res.json()
+      if (data.success) {
+        if (data.data.length === 0) {
+          setAdminMsg({ type: 'warning', text: '该表目前没有数据！' })
+          return
+        }
+        const worksheet = window.XLSX.utils.json_to_sheet(data.data)
+        const workbook = window.XLSX.utils.book_new()
+        window.XLSX.utils.book_append_sheet(workbook, worksheet, adminExportTable)
+        window.XLSX.writeFile(workbook, `${adminExportTable}_export.xlsx`)
+        setAdminMsg({ type: 'success', text: '导出成功！' })
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setAdminMsg({ type: 'error', text: '导出失败: ' + err.message })
+    }
+  }
+
+  const handleAdminFileChange = (e) => {
+    const selectedFile = e.target.files && e.target.files[0]
+    if (!selectedFile) return
+    setAdminImportFile(selectedFile)
+    setAdminMsg({ type: '', text: '' })
+    
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result)
+        const workbook = window.XLSX.read(data, { type: 'array' })
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+        const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { defval: null })
+        
+        if (jsonData.length === 0) {
+          setAdminMsg({ type: 'error', text: '解析失败：表格内没有数据' })
+          setAdminParsedData([])
+          return
+        }
+        
+        // 数据校验
+        const selectedTableSchema = adminTables.find(t => t.name === adminImportTable)
+        if (selectedTableSchema) {
+          const fileHeaders = Object.keys(jsonData[0])
+          const tableCols = selectedTableSchema.columns
+          
+          const missingCols = tableCols.filter(c => !fileHeaders.includes(c))
+          if (missingCols.length > 0) {
+            setAdminMsg({ type: 'error', text: `解析失败：上传的文件缺失必填列 [${missingCols.join(', ')}]，请检查后再上传！` })
+            setAdminParsedData([])
+            return
+          }
+        }
+        
+        setAdminParsedData(jsonData)
+        setAdminMsg({ type: 'info', text: `文件解析成功，共发现 ${jsonData.length} 条数据，可以开始导入。` })
+      } catch (err) {
+        setAdminMsg({ type: 'error', text: '文件解析出错: ' + err.message })
+        setAdminParsedData([])
+      }
+    }
+    reader.readAsArrayBuffer(selectedFile)
+  }
+
+  const handleAdminImport = async () => {
+    if (!adminImportTable || adminParsedData.length === 0) return
+    setAdminLoading(true)
+    setAdminMsg({ type: 'info', text: '正在提交导入，请稍候...' })
+    try {
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: adminImportTable,
+          mode: adminImportMode,
+          data: adminParsedData
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setAdminMsg({ type: 'success', text: data.message })
+        setAdminImportFile(null)
+        setAdminParsedData([])
+        // 重置文件选择框的值
+        const fileInput = document.getElementById('admin-file-upload')
+        if (fileInput) fileInput.value = ''
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (err) {
+      setAdminMsg({ type: 'error', text: '导入失败: ' + err.message })
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
+  // ==========================================
   // 3. 渲染各个页面区域 (Page Render Utilities)
   // ==========================================
 
@@ -1090,20 +1223,117 @@ export default function App() {
     )
   }
 
-  // C. 后台管理页面占位
+  // C. 后台管理页面
   const renderAdminView = () => {
     return (
       <div>
-        <div className="panel" style={{ padding: '5rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ fontSize: '4.5rem', marginBottom: '1.5rem' }}>🔐</div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--text-primary)' }}>后台管理控制台</h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            该模块正在规划中。未来将在此处支持可视化修改增值计算系数（如材质系数、弯曲半径系数、低温/脱脂参数等）、维护框架表底盘字典、并提供日志与文件审计历史追溯功能。
-          </p>
-          <button className="btn btn-primary" style={{ marginTop: '2.5rem', background: 'var(--text-muted)', cursor: 'not-allowed', boxShadow: 'none' }} disabled>
-            🚀 模块建设中 (Coming Soon)
-          </button>
-        </div>
+        {adminMsg.text && (
+          <div className={`alert ${adminMsg.type === 'error' ? 'alert-error' : adminMsg.type === 'success' ? 'alert-success' : adminMsg.type === 'warning' ? 'alert-warning' : 'alert-info'}`} style={{ marginBottom: '1.5rem' }}>
+            {adminMsg.type === 'error' && '❌ '}
+            {adminMsg.type === 'success' && '✅ '}
+            {adminMsg.type === 'warning' && '⚠️ '}
+            {adminMsg.type === 'info' && 'ℹ️ '}
+            {adminMsg.text}
+          </div>
+        )}
+
+        <section className="panel" style={{ marginBottom: '2rem' }}>
+          <div className="section-title">
+            <div className="section-title-left">
+              <span>📥 模板导出 (Template Export)</span>
+            </div>
+          </div>
+          <div className="filter-grid" style={{ alignItems: 'flex-end' }}>
+            <div className="filter-group">
+              <label>选择目标表</label>
+              <select value={adminExportTable} onChange={e => setAdminExportTable(e.target.value)}>
+                {adminTables.map(t => (
+                  <option key={t.name} value={t.name}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group" style={{ flex: 'none' }}>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleAdminExport}
+                disabled={!adminExportTable}
+              >
+                导出 Excel
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="section-title">
+            <div className="section-title-left">
+              <span>📤 数据导入 (Data Import)</span>
+            </div>
+          </div>
+          <div className="filter-grid" style={{ marginBottom: '1.5rem', alignItems: 'flex-end' }}>
+            <div className="filter-group">
+              <label>选择目标表</label>
+              <select 
+                value={adminImportTable} 
+                onChange={e => {
+                  setAdminImportTable(e.target.value)
+                  // 重置文件选择
+                  setAdminImportFile(null)
+                  setAdminParsedData([])
+                  setAdminMsg({ type: '', text: '' })
+                  const fileInput = document.getElementById('admin-file-upload')
+                  if (fileInput) fileInput.value = ''
+                }}
+              >
+                {adminTables.map(t => (
+                  <option key={t.name} value={t.name}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>导入模式</label>
+              <select value={adminImportMode} onChange={e => setAdminImportMode(e.target.value)}>
+                <option value="overwrite">覆盖导入 (完全清空原表)</option>
+                <option value="append">追加导入 (保留原数据追加写入)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="filter-group" style={{ marginBottom: '1.5rem' }}>
+            <label>上传数据文件 (.xlsx, .xls, .csv)</label>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <input 
+                id="admin-file-upload"
+                type="file" 
+                className="file-input"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleAdminFileChange}
+              />
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => document.getElementById('admin-file-upload').click()}
+              >
+                📁 选择文件
+              </button>
+              {adminImportFile && (
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  已选文件: <strong>{adminImportFile.name}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button 
+              className={`btn ${adminImportMode === 'overwrite' ? 'btn-danger' : 'btn-primary'}`} 
+              onClick={handleAdminImport}
+              disabled={adminParsedData.length === 0 || adminLoading}
+              style={{ opacity: (adminParsedData.length === 0 || adminLoading) ? 0.6 : 1 }}
+            >
+              {adminLoading ? '处理中...' : (adminImportMode === 'overwrite' ? '⚡️ 确认清空并导入' : '⚡️ 确认追加导入')}
+            </button>
+          </div>
+        </section>
       </div>
     )
   }
