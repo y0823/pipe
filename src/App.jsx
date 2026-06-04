@@ -1248,7 +1248,9 @@ export default function App() {
               <label>选择目标表</label>
               <select value={adminExportTable} onChange={e => setAdminExportTable(e.target.value)}>
                 {adminTables.map(t => (
-                  <option key={t.name} value={t.name}>{t.name}</option>
+                  <option key={t.name} value={t.name}>
+                    {TABLE_NAME_MAP[t.name] ? `${TABLE_NAME_MAP[t.name]} (${t.name})` : t.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1286,7 +1288,9 @@ export default function App() {
                 }}
               >
                 {adminTables.map(t => (
-                  <option key={t.name} value={t.name}>{t.name}</option>
+                  <option key={t.name} value={t.name}>
+                    {TABLE_NAME_MAP[t.name] ? `${TABLE_NAME_MAP[t.name]} (${t.name})` : t.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1554,10 +1558,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.2
+              版本：v3.3
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (重构系统表命名规范 | 更新于: 2026-06-04 10:41)
+              (后台管理支持中文表名显示 | 更新于: 2026-06-04 10:48)
             </span>
           </div>
         </aside>
