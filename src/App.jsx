@@ -1374,7 +1374,20 @@ export default function App() {
           </ul>
 
           <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-primary)', marginTop: '2.5rem', marginBottom: '0.8rem', fontWeight: '600' }}>
-            三、其他注意事项
+            三、后台管理模块 (数据源维护)
+          </h3>
+          <p style={{ marginBottom: '1rem' }}>
+            <strong>核心功能：</strong>提供图形化的数据库维护界面，可以下载数据表的结构模板，以及通过追加或覆盖的方式在线批量更新后台基础配置表。
+          </p>
+          <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：获取模板</strong> - 在“操作目标表”下拉框中选择你要修改的配置表（如 <code>test_R</code> 等），点击右上角的“导出 Excel”即可获取最新的线上数据副本。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 2：本地修改</strong> - 直接在下载的 Excel 中修改、添加或删除对应数据。<strong>请不要随意更改表头的列名</strong>。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 3：选择导入模式</strong> - <strong>覆盖模式</strong>会首先清空线上表内的旧数据再插入新文件的数据；<strong>追加模式</strong>则会在保留原有数据的基础上插入新数据（遇到具有唯一约束的重复数据时，系统会自动平滑更新替换）。</li>
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 4：执行导入</strong> - 上传改好的 Excel 文件并点击导入，系统会自动对数据格式进行严密的校验，通过后即可直达底层数据库。</li>
+          </ul>
+
+          <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-primary)', marginTop: '2.5rem', marginBottom: '0.8rem', fontWeight: '600' }}>
+            四、其他注意事项
           </h3>
           <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
             <li style={{ marginBottom: '0.5rem' }}><strong>深色/浅色主题：</strong>点击左下角的用户图标即可快速在深色与浅色模式间切换，以适应不同的光线与阅读习惯。</li>
