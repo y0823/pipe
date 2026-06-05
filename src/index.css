@@ -764,10 +764,10 @@ h1 {
 }
 
 .results-table th {
-  background: var(--th-bg);
+  background: #FF7600;
   padding: 0.9rem 1.1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   border-bottom: 2px solid var(--accent-primary);
   text-transform: uppercase;
   font-size: 0.75rem;
