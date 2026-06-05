@@ -1659,10 +1659,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.6
+              版本：v3.7
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (新增包段查询及索引优化 | 更新于: 2026-06-05 13:00)
+              (新增包段查询及索引优化 | 更新于: 2026-06-05 16:54)
             </span>
           </div>
         </aside>
