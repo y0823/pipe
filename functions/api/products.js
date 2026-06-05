@@ -177,11 +177,11 @@ export async function onRequest(context) {
         sqlParams.push(parseFloat(thickness) || thickness);
       }
       if (excludeKey !== "otherThickness" && otherThickness) {
-        sqlConditions += " AND a.其他壁厚 = ?";
+        sqlConditions += " AND a.其他壁厚 = ? COLLATE NOCASE";
         sqlParams.push(otherThickness);
       }
       if (excludeKey !== "material" && material) {
-        sqlConditions += " AND a.材质 = ?";
+        sqlConditions += " AND a.材质 = ? COLLATE NOCASE";
         sqlParams.push(material);
       }
       if (!ignoreVendor && excludeKey !== "vendor" && vendor) {
