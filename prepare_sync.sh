@@ -28,4 +28,5 @@ done
 
 # 追加优化后的索引定义
 cat restore_indexes.sql >> $OUT
-echo "Prepared $OUT for D1 sync, including optimized indexes."
+echo "ANALYZE;" >> $OUT
+echo "Prepared $OUT for D1 sync, including optimized indexes and query planner stats."
