@@ -645,11 +645,20 @@ export default function App() {
           setAdminParsedData([])
           return
         }
+
+        // 去除表头的首尾空格，防止用户上传包含空格的列名
+        const cleanJsonData = jsonData.map(row => {
+          const newRow = {}
+          for (let key in row) {
+            newRow[key.trim()] = row[key]
+          }
+          return newRow
+        })
         
         // 数据校验
         const selectedTableSchema = adminTables.find(t => t.name === adminImportTable)
         if (selectedTableSchema) {
-          const fileHeaders = Object.keys(jsonData[0])
+          const fileHeaders = Object.keys(cleanJsonData[0])
           const tableCols = selectedTableSchema.columns
           
           const missingCols = tableCols.filter(c => !fileHeaders.includes(c))
@@ -660,7 +669,7 @@ export default function App() {
           }
         }
         
-        setAdminParsedData(jsonData)
+        setAdminParsedData(cleanJsonData)
         setAdminMsg({ type: 'info', text: `文件解析成功，共发现 ${jsonData.length} 条数据，可以开始导入。` })
       } catch (err) {
         setAdminMsg({ type: 'error', text: '文件解析出错: ' + err.message })
