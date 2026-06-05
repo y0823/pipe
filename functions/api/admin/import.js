@@ -70,6 +70,11 @@ export async function onRequestPost(context) {
     // 批量执行
     await env.DB.batch(statements);
 
+    // 导入数据后，刷新查询优化器统计数据
+    await env.DB.prepare("ANALYZE").run().catch(err => {
+      console.error("Failed to run ANALYZE after admin import:", err);
+    });
+
     return new Response(JSON.stringify({
       success: true,
       message: `成功导入 ${data.length} 条数据（模式：${mode === 'overwrite' ? '覆盖' : '追加'}）`
