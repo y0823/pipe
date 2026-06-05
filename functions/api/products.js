@@ -200,6 +200,8 @@ export async function onRequest(context) {
       ${mainQuery.sqlConditions}
       ORDER BY a.序号 ASC, b.单价 ASC LIMIT 200
     `;
+    console.log("SQL Main:", sqlMain);
+    console.log("SQL Params:", JSON.stringify(mainQuery.sqlParams));
 
     // 仅运行主数据查询，不再执行昂贵的 DISTINCT 级联查询
     const mainResultsPromise = skipData 

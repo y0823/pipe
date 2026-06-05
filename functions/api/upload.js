@@ -475,8 +475,8 @@ export async function onRequestPost(context) {
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
               a.DN2 = ${userPriceTable}.DN2 AND
-              a.材质 = ${userPriceTable}.材质 AND
-              a.其他壁厚 IS ${userPriceTable}.其他壁厚
+              a.材质 = ${userPriceTable}.材质 COLLATE NOCASE AND
+              a.其他壁厚 IS ${userPriceTable}.其他壁厚 COLLATE NOCASE
           LIMIT 1
       )
     `;
@@ -490,7 +490,7 @@ export async function onRequestPost(context) {
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
               a.DN2 = ${userPriceTable}.DN2 AND
-              a.材质 = ${userPriceTable}.材质 AND
+              a.材质 = ${userPriceTable}.材质 COLLATE NOCASE AND
               a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
@@ -507,7 +507,7 @@ export async function onRequestPost(context) {
               a.名称 = ${userPriceTable}.匹配名称 AND
               a.DN1 = ${userPriceTable}.DN1 AND
               a.DN2 = ${userPriceTable}.DN2 AND
-              a.材质 = ${userPriceTable}.材质 AND
+              a.材质 = ${userPriceTable}.材质 COLLATE NOCASE AND
               a.壁厚 >= ${userPriceTable}.数字壁厚
           ORDER BY a.壁厚 ASC
           LIMIT 1
