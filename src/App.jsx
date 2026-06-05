@@ -973,7 +973,16 @@ export default function App() {
               <select
                 id="name-select"
                 value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedName(val)
+                  setSelectedDn1('')
+                  setSelectedDn2('')
+                  setThickness('')
+                  setLocalThickness('')
+                  setOtherThickness('')
+                  setSelectedMaterial('')
+                }}
               >
                 <option value="">全部配件</option>
                 {names.map(name => (
@@ -988,7 +997,14 @@ export default function App() {
               <select
                 id="dn1-select"
                 value={selectedDn1}
-                onChange={(e) => setSelectedDn1(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedDn1(val)
+                  setSelectedDn2('')
+                  setThickness('')
+                  setLocalThickness('')
+                  setOtherThickness('')
+                }}
               >
                 <option value="">全部 DN1</option>
                 {dn1List.map(val => (
@@ -1003,7 +1019,13 @@ export default function App() {
               <select
                 id="dn2-select"
                 value={selectedDn2}
-                onChange={(e) => setSelectedDn2(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedDn2(val)
+                  setThickness('')
+                  setLocalThickness('')
+                  setOtherThickness('')
+                }}
               >
                 <option value="">全部 DN2</option>
                 {dn2List.map(val => (
@@ -1018,7 +1040,13 @@ export default function App() {
               <select
                 id="material-select"
                 value={selectedMaterial}
-                onChange={(e) => setSelectedMaterial(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setSelectedMaterial(val)
+                  setThickness('')
+                  setLocalThickness('')
+                  setOtherThickness('')
+                }}
               >
                 <option value="">全部材质</option>
                 {materials.map(m => (
