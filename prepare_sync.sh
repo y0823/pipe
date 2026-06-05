@@ -16,6 +16,7 @@ TABLES=(
   "tbl_others"
   "tbl_paohuang"
   "tbl_prod_name"
+  "tbl_sample"
   "tbl_special"
   "tbl_vendors"
   "tbl_zn"
