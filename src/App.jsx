@@ -35,6 +35,7 @@ const TABLE_NAME_MAP = {
   'tbl_hic': '抗硫氢管件系数表',
   'tbl_paohuang': '抛光管件系数表',
   'tbl_vendors': '厂商配置表',
+  'tbl_baoduan': '包段',
   'product_attributes': '商品属性表',
   'product_prices': '商品价格表'
 };
@@ -389,6 +390,7 @@ export default function App() {
   const [otherThickness, setOtherThickness] = useState('')
   const [selectedMaterial, setSelectedMaterial] = useState('')
   const [selectedVendor, setSelectedVendor] = useState('')
+  const [selectedBaoduan, setSelectedBaoduan] = useState('')
 
   // 下拉列表数据源
   const [names, setNames] = useState([])
@@ -396,6 +398,7 @@ export default function App() {
   const [dn2List, setDn2List] = useState([])
   const [materials, setMaterials] = useState([])
   const [vendors, setVendors] = useState([])
+  const [baoduans, setBaoduans] = useState([])
   const [otherThicknessList, setOtherThicknessList] = useState([])
 
   // 纯前端级联状态
@@ -424,6 +427,7 @@ export default function App() {
             setAllSpecs(resData.allSpecs || [])
             setNames(resData.allNames || []) // 名称从 tbl_prod_name 获取
             setVendors(resData.allVendors || []) // 厂商固化
+            setBaoduans(resData.allBaoduans || []) // 包段固化
             if (resData.source) {
               setDataSourceQuery(resData.source)
             }
@@ -486,6 +490,7 @@ export default function App() {
       if (otherThickness && !isOtherThicknessDisabled) params.append('otherThickness', otherThickness)
       if (selectedMaterial) params.append('material', selectedMaterial)
       if (selectedVendor) params.append('vendor', selectedVendor)
+      if (selectedBaoduan) params.append('baoduan', selectedBaoduan)
 
       const response = await fetch(`/api/products?${params.toString()}`)
       if (!response.ok) {
@@ -528,7 +533,8 @@ export default function App() {
     thickness,
     otherThickness,
     selectedMaterial,
-    selectedVendor
+    selectedVendor,
+    selectedBaoduan
   ])
 
   // 清空筛选
@@ -541,6 +547,7 @@ export default function App() {
     setOtherThickness('')
     setSelectedMaterial('')
     setSelectedVendor('')
+    setSelectedBaoduan('')
     setProducts([])
     setHasActiveSearch(false)
   }
@@ -1075,7 +1082,20 @@ export default function App() {
               </select>
             </div>
 
-
+            {/* 包段 */}
+            <div className="filter-group">
+              <label htmlFor="baoduan-select">包段</label>
+              <select
+                id="baoduan-select"
+                value={selectedBaoduan}
+                onChange={(e) => setSelectedBaoduan(e.target.value)}
+              >
+                <option value="">全部包段</option>
+                {baoduans.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
 
             {/* 标准壁厚 - 互斥 */}
             <div className="filter-group" style={{ position: 'relative' }}>
@@ -1142,15 +1162,15 @@ export default function App() {
             <button 
               className="btn btn-primary" 
               onClick={fetchProductsList}
-              disabled={queryLoading || !(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor)}
+              disabled={queryLoading || !(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || selectedBaoduan)}
               style={{ 
                 padding: '0.55rem 1.8rem', 
                 fontSize: '0.85rem',
                 background: 'var(--accent-primary)',
                 boxShadow: '0 4px 12px 0 hsla(260, 85%, 65%, 0.25)',
                 fontWeight: '600',
-                opacity: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor) ? 1 : 0.6,
-                cursor: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor) ? 'pointer' : 'not-allowed'
+                opacity: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || selectedBaoduan) ? 1 : 0.6,
+                cursor: (selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || selectedBaoduan) ? 'pointer' : 'not-allowed'
               }}
             >
               {queryLoading ? (
@@ -1167,7 +1187,7 @@ export default function App() {
 
         {/* 结果栏及清除按钮 */}
         {(() => {
-          const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor);
+          const hasActiveQuery = !!(selectedName || selectedDn1 || selectedDn2 || thickness || otherThickness || selectedMaterial || selectedVendor || selectedBaoduan);
           
           if (!hasActiveQuery) {
             return (
@@ -1195,9 +1215,6 @@ export default function App() {
                 <div className="results-count">
                   找到 <strong>{products.length}</strong> 行报价记录
                 </div>
-                <button className="clear-btn" onClick={clearFilters}>
-                  清除全部筛选条件
-                </button>
               </div>
 
               {/* 服务端错误提示 */}
@@ -1234,6 +1251,7 @@ export default function App() {
                         <th>其他壁厚</th>
                         <th>材质</th>
                         <th>厂商</th>
+                        <th>包段</th>
                         <th style={{ textAlign: 'right' }}>单价</th>
                       </tr>
                     </thead>
@@ -1262,8 +1280,9 @@ export default function App() {
                               <span className="badge-secondary">{item.材质}</span>
                             </td>
                             <td style={{ fontWeight: '500' }}>{item.厂商}</td>
+                            <td style={{ fontWeight: '500' }}>{item.包段}</td>
                             <td style={{ textAlign: 'right' }} className="price-text">
-                              ¥{parseFloat(item.单价).toFixed(2)}
+                              {parseFloat(item.单价).toFixed(2)}
                             </td>
                           </tr>
                         );
@@ -1621,10 +1640,10 @@ export default function App() {
               设计制作：老杨
             </span>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.3rem' }}>
-              版本：v3.5
+              版本：v3.6
             </span>
             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center', display: 'block', marginTop: '0.2rem', opacity: 0.85 }}>
-              (新增数据库查询诊断与索引分析 | 更新于: 2026-06-05 07:38)
+              (新增包段查询及索引优化 | 更新于: 2026-06-05 13:00)
             </span>
           </div>
         </aside>

@@ -75,6 +75,7 @@ export async function onRequest(context) {
     const otherThickness = url.searchParams.get("otherThickness") || "";
     const material = url.searchParams.get("material") || "";
     const vendor = url.searchParams.get("vendor") || "";
+    const baoduan = url.searchParams.get("baoduan") || "";
     const skipData = url.searchParams.get("skipData") === "true";
     const fetchAllSpecs = url.searchParams.get("fetchAllSpecs") === "true";
 
@@ -92,12 +93,14 @@ export async function onRequest(context) {
         if (excludeKey !== "otherThickness" && otherThickness) list = list.filter(p => p["其他壁厚"] !== null && p["其他壁厚"] === otherThickness);
         if (excludeKey !== "material" && material) list = list.filter(p => p["材质"] === material);
         if (excludeKey !== "vendor" && vendor) list = list.filter(p => p["厂商"] === vendor);
+        if (excludeKey !== "baoduan" && baoduan) list = list.filter(p => p["包段"] === baoduan);
         return list;
       };
 
       const names = [...new Set(getMockFiltered("name").map(p => p["名称"]))];
       const materials = [...new Set(getMockFiltered("material").map(p => p["材质"]))];
       const vendors = [...new Set(getMockFiltered("vendor").map(p => p["厂商"]))];
+      const baoduans = [...new Set(getMockFiltered("baoduan").map(p => p["包段"]))];
       const dn1List = [...new Set(getMockFiltered("dn1").map(p => String(p["DN1"])))].filter(x => x && x !== "null" && x !== "空");
       const dn2List = [...new Set(getMockFiltered("dn2").map(p => String(p["DN2"])))].filter(x => x && x !== "null" && x !== "空");
       const otherThicknessList = [...new Set(getMockFiltered("otherThickness").map(p => String(p["其他壁厚"])))].filter(x => x && x !== "null" && x !== "空");
@@ -111,6 +114,7 @@ export async function onRequest(context) {
       if (otherThickness) finalFiltered = finalFiltered.filter(p => p["其他壁厚"] !== null && p["其他壁厚"] === otherThickness);
       if (material) finalFiltered = finalFiltered.filter(p => p["材质"] === material);
       if (vendor) finalFiltered = finalFiltered.filter(p => p["厂商"] === vendor);
+      if (baoduan) finalFiltered = finalFiltered.filter(p => p["包段"] === baoduan);
 
       return new Response(JSON.stringify({
         success: true,
@@ -123,7 +127,8 @@ export async function onRequest(context) {
         dn2List,
         otherThicknessList,
         allSpecs: MOCK_PIPEFITTINGS_JOINED, // Mock all specs
-        allVendors: vendors
+        allVendors: vendors,
+        allBaoduans: baoduans
       }), { headers: corsHeaders });
     }
 
@@ -139,10 +144,14 @@ export async function onRequest(context) {
       // 3. 厂商名单从 tbl_vendors 表获取
       const vendorsSql = `SELECT DISTINCT 厂商 FROM tbl_vendors WHERE 厂商 IS NOT NULL`;
       
-      const [specsResults, namesResults, vendorsResults] = await Promise.all([
+      // 4. 包段名单从 tbl_baoduan 表获取
+      const baoduansSql = `SELECT DISTINCT 包段 FROM tbl_baoduan WHERE 包段 IS NOT NULL`;
+      
+      const [specsResults, namesResults, vendorsResults, baoduansResults] = await Promise.all([
         env.DB.prepare(specsSql).all(),
         env.DB.prepare(namesSql).all(),
-        env.DB.prepare(vendorsSql).all()
+        env.DB.prepare(vendorsSql).all(),
+        env.DB.prepare(baoduansSql).all()
       ]);
 
       return new Response(JSON.stringify({
@@ -150,7 +159,8 @@ export async function onRequest(context) {
         source: "d1_database",
         allSpecs: specsResults.results,
         allNames: namesResults.results.map(row => String(row.物资名称)),
-        allVendors: vendorsResults.results.map(row => String(row.厂商))
+        allVendors: vendorsResults.results.map(row => String(row.厂商)),
+        allBaoduans: baoduansResults.results.map(row => String(row.包段))
       }), { headers: corsHeaders });
     }
 
@@ -188,13 +198,17 @@ export async function onRequest(context) {
         sqlConditions += " AND b.厂商 = ?";
         sqlParams.push(vendor);
       }
+      if (excludeKey !== "baoduan" && baoduan) {
+        sqlConditions += " AND b.包段 = ?";
+        sqlParams.push(baoduan);
+      }
       return { sqlConditions, sqlParams };
     };
 
-    // 获取主列表查询条件（应用所有过滤器，包括厂商）
+    // 获取主列表查询条件（应用所有过滤器，包括厂商和包段）
     const mainQuery = buildFacetedConditions(null, false);
     const sqlMain = `
-      SELECT a.序号, a.名称, a.DN1, a.DN2, a.壁厚, a.材质, a.其他壁厚, b.厂商, b.单价 
+      SELECT a.序号, a.名称, a.DN1, a.DN2, a.壁厚, a.材质, a.其他壁厚, b.厂商, b.包段, b.单价 
       FROM product_attributes a 
       INNER JOIN product_prices b ON a.序号 = b.序号
       ${mainQuery.sqlConditions}

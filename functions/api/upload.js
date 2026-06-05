@@ -137,7 +137,7 @@ export async function onRequestPost(context) {
     }
 
     // 解析 CSV 为二维数组
-    const parsedData = parseCSV(csvText);
+    console.log("\n--- RAW CSV BEGIN ---\n" + csvText.slice(0, 500) + "\n--- RAW CSV END ---\n"); const parsedData = parseCSV(csvText);
     
     // 如果解析出来的行数少于 2 行（包含 1 行标题），则说明无数据
     if (parsedData.length <= 1) {
