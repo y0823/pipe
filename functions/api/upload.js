@@ -147,6 +147,7 @@ export async function onRequestPost(context) {
     // 排除首行（标题行），提取有效数据行
     const dataRows = parsedData.slice(1);
     
+    // 增加厂商和包段查询
     // 过滤掉完全为空的空行，并整理数据
     const validRows = [];
     for (const row of dataRows) {
@@ -157,8 +158,10 @@ export async function onRequestPost(context) {
       const partNo = row[0] || ""; // 物料号码
       const desc = row[1] || "";   // 物料长描述
       const quantity = parseFloat(row[2]) || 0; // 数量
+      const baoduan = row[3] || ""; // 包段
+      const changshang = row[4] || ""; // 厂商
       
-      validRows.push({ partNo, desc, quantity });
+      validRows.push({ partNo, desc, quantity, baoduan, changshang });
     }
 
     if (validRows.length === 0) {
@@ -200,9 +203,12 @@ export async function onRequestPost(context) {
       return result;
     };
     
-    // 0. 安全补齐 tbl_sample 的 user_id 字段
+    // 增加厂商和包段查询
+    // 0. 安全补齐 tbl_sample 的 user_id / 包段 / 厂商 字段
     const resAlterSample = await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN user_id TEXT DEFAULT 'anonymous'").run().catch(() => {});
     if (resAlterSample) trackMetrics(resAlterSample);
+    await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN 包段 TEXT").run().catch(() => {});
+    await env.DB.prepare("ALTER TABLE tbl_sample ADD COLUMN 厂商 TEXT").run().catch(() => {});
 
     // 1. 清空当前登录用户的数据记录
     const resDelete = await env.DB.prepare("DELETE FROM tbl_sample WHERE user_id = ?").bind(userEmail).run();
@@ -211,12 +217,12 @@ export async function onRequestPost(context) {
     // 2. 准备批量写入语句 (D1 batch APIs)
     const statements = [];
     const insertStmt = env.DB.prepare(
-      "INSERT INTO tbl_sample (物料号码, 物料长描述, 数量, user_id) VALUES (?, ?, ?, ?)"
+      "INSERT INTO tbl_sample (物料号码, 物料长描述, 数量, 包段, 厂商, user_id) VALUES (?, ?, ?, ?, ?, ?)"
     );
 
     for (const item of validRows) {
       statements.push(
-        insertStmt.bind(item.partNo, item.desc, item.quantity, userEmail)
+        insertStmt.bind(item.partNo, item.desc, item.quantity, item.baoduan, item.changshang, userEmail)
       );
     }
 
@@ -232,11 +238,14 @@ export async function onRequestPost(context) {
     const resDrop = await env.DB.prepare(`DROP TABLE IF EXISTS ${userPriceTable}`).run();
     trackMetrics(resDrop);
 
+    // 增加厂商和包段查询
     const createTableSql = `
       CREATE TABLE ${userPriceTable} AS
       SELECT 
           s.物料号码,
           s.物料长描述,
+          s.包段,
+          s.厂商,
           p.物资名称 AS 匹配名称,
         
           IIF(
@@ -465,6 +474,7 @@ export async function onRequestPost(context) {
     trackMetrics(await env.DB.prepare(`ALTER TABLE ${userPriceTable} ADD COLUMN 最终核价 REAL`).run());
 
     // 6. 执行后续的 UPDATE 计算逻辑 (多表数据关联与数学换算，已剔除 COALESCE 函数以启用数据库 B-Tree 索引)
+    // 增加厂商和包段查询
     const update1 = `
       UPDATE ${userPriceTable}
       SET 其他壁厚单价 = (
@@ -476,7 +486,9 @@ export async function onRequestPost(context) {
               a.DN1 = ${userPriceTable}.DN1 AND
               a.DN2 = ${userPriceTable}.DN2 AND
               a.材质 = ${userPriceTable}.材质 COLLATE NOCASE AND
-              a.其他壁厚 IS ${userPriceTable}.其他壁厚 COLLATE NOCASE
+              a.其他壁厚 IS ${userPriceTable}.其他壁厚 COLLATE NOCASE AND
+              b.厂商 = ${userPriceTable}.厂商 AND
+              b.包段 = ${userPriceTable}.包段
           LIMIT 1
       )
     `;
@@ -497,6 +509,7 @@ export async function onRequestPost(context) {
       )
     `;
 
+    // 增加厂商和包段查询
     const update3 = `
       UPDATE ${userPriceTable}
       SET 数字壁厚单价 = (
@@ -508,7 +521,9 @@ export async function onRequestPost(context) {
               a.DN1 = ${userPriceTable}.DN1 AND
               a.DN2 = ${userPriceTable}.DN2 AND
               a.材质 = ${userPriceTable}.材质 COLLATE NOCASE AND
-              a.壁厚 >= ${userPriceTable}.数字壁厚
+              a.壁厚 >= ${userPriceTable}.数字壁厚 AND
+              bp.厂商 = ${userPriceTable}.厂商 AND
+              bp.包段 = ${userPriceTable}.包段
           ORDER BY a.壁厚 ASC
           LIMIT 1
       )

@@ -105,8 +105,9 @@ export default function App() {
   const [diagnosticsData, setDiagnosticsData] = useState(null)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
 
+  // 增加厂商和包段查询
   // 拖拽调整列宽状态与函数
-  const [csvColWidths, setCsvColWidths] = useState([200, 700, 150])
+  const [csvColWidths, setCsvColWidths] = useState([180, 450, 100, 100, 150])
   const [dbColWidths, setDbColWidths] = useState([200, 700, 150])
 
   const startResize = (e, index, type) => {
@@ -214,12 +215,15 @@ export default function App() {
         parsedPreview.push(parsed)
       }
       setCsvPreview(parsedPreview)
+      // 增加厂商和包段查询
       if (parsedPreview.length > 0) {
         const colsCount = parsedPreview[0].length
         const initialWidths = Array(colsCount).fill(150)
-        if (colsCount > 0) initialWidths[0] = 200
-        if (colsCount > 1) initialWidths[1] = 700
-        if (colsCount > 2) initialWidths[2] = 150
+        if (colsCount > 0) initialWidths[0] = 180
+        if (colsCount > 1) initialWidths[1] = 450
+        if (colsCount > 2) initialWidths[2] = 100
+        if (colsCount > 3) initialWidths[3] = 100
+        if (colsCount > 4) initialWidths[4] = 150
         setCsvColWidths(initialWidths)
       }
     }
@@ -722,7 +726,8 @@ export default function App() {
               />
               <div className="dropzone-icon">📄</div>
               <h3>拖拽 CSV 或 Excel 文件至此处，或点击选择文件</h3>
-              <p>支持格式：.csv, .xlsx, .xls 表格文件 (限定第一列物料号码、第二列物料长描述、第三列数量)</p>
+              {/* 增加厂商和包段查询 */}
+              <p>支持格式：.csv, .xlsx, .xls 表格文件 (限定第 1-5 列依次为：物料号码、物料长描述、数量、包段、厂商)</p>
             </div>
           ) : (
             <div>
@@ -1415,7 +1420,8 @@ export default function App() {
             <strong>核心功能：</strong>通过上传 Excel/CSV 文件，系统自动将文件中的产品与数据库中的各厂商报价进行匹配，并计算出各家厂商的最终核价结果。
           </p>
           <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
-            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：准备文件</strong> - 请确保表格第一列是“物料号码”，第二列是“物料长描述”（即配件名称与规格等），第三列是“数量”。</li>
+            {/* 增加厂商和包段查询 */}
+            <li style={{ marginBottom: '0.5rem' }}><strong>步骤 1：准备文件</strong> - 请确保表格第一列是“物料号码”，第二列是“物料长描述”（即配件名称与规格等），第三列是“数量”，第四列是“包段”，第五列是“厂商”。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 2：上传文件</strong> - 拖拽或点击上传框，选择 <code>.xlsx</code>、<code>.xls</code> 或 <code>.csv</code> 格式的文件。系统会自动解析前 5 行让你确认列名匹配是否正确。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 3：开始导入</strong> - 点击红色的“⚡️ 开始清空并导入”按钮。⚠️ <strong>注意：此操作会完全覆盖数据库中的临时计算表</strong>，导入前请确保数据无误。</li>
             <li style={{ marginBottom: '0.5rem' }}><strong>步骤 4：查看与导出</strong> - 数据处理完成后，下方表格将完整展示核价结果。你可以点击表格右上方的按钮将结果“复制到剪贴板”或“导出为 Excel”到本地。</li>
