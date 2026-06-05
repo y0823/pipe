@@ -635,8 +635,13 @@ export default function App() {
     const reader = new FileReader()
     reader.onload = (evt) => {
       try {
-        const data = new Uint8Array(evt.target.result)
-        const workbook = window.XLSX.read(data, { type: 'array' })
+        let workbook;
+        if (selectedFile.name.toLowerCase().endsWith('.csv')) {
+          workbook = window.XLSX.read(evt.target.result, { type: 'string' })
+        } else {
+          const data = new Uint8Array(evt.target.result)
+          workbook = window.XLSX.read(data, { type: 'array' })
+        }
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { defval: null })
         
@@ -663,7 +668,7 @@ export default function App() {
           
           const missingCols = tableCols.filter(c => !fileHeaders.includes(c))
           if (missingCols.length > 0) {
-            setAdminMsg({ type: 'error', text: `解析失败：上传的文件缺失必填列 [${missingCols.join(', ')}]，请检查后再上传！` })
+            setAdminMsg({ type: 'error', text: `解析失败：上传的文件缺失必填列 [${missingCols.join(', ')}]，当前文件中只识别到了列名：[${fileHeaders.join(', ')}]。请检查后再上传！` })
             setAdminParsedData([])
             return
           }
@@ -676,7 +681,12 @@ export default function App() {
         setAdminParsedData([])
       }
     }
-    reader.readAsArrayBuffer(selectedFile)
+    
+    if (selectedFile.name.toLowerCase().endsWith('.csv')) {
+      reader.readAsText(selectedFile)
+    } else {
+      reader.readAsArrayBuffer(selectedFile)
+    }
   }
 
   const handleAdminImport = async () => {
